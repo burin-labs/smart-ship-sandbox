@@ -1,2 +1,1 @@
-counter: a
 counter: 1
