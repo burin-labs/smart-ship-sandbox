@@ -1,2 +1,2 @@
 counter: a
-counter: b
+counter: 1
