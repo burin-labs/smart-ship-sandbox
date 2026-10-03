@@ -1,0 +1,14 @@
+name: CI
+on:
+  pull_request:
+  merge_group:
+jobs:
+  ci-status:
+    name: CI status
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check
+        env:
+          EVENT: ${{ github.event_name }}
+        run: ./check.sh
