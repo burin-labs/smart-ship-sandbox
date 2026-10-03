@@ -1,0 +1,31 @@
+name: Smart Ship
+
+on:
+  pull_request_target:
+    types: [labeled, unlabeled, synchronize, ready_for_review, dequeued, closed]
+  pull_request_review:
+    types: [submitted]
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: smart-ship-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  ship:
+    if: >-
+      github.event_name != 'pull_request_target'
+      || contains(github.event.pull_request.labels.*.name, 'ship')
+      || (github.event.action == 'unlabeled' && github.event.label.name == 'ship')
+    uses: burin-labs/.github/.github/workflows/smart-ship.yml@ksinder/smart-ship-reusable
+    with:
+      burin-ref: ksinder/smart-ship
+    secrets:
+      RELEASE_APP_CLIENT_ID: ${{ secrets.RELEASE_APP_CLIENT_ID }}
+      RELEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
