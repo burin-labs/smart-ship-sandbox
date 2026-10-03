@@ -19,10 +19,11 @@ permissions:
 jobs:
   ship:
     if: >-
-      github.event_name != 'pull_request_target'
+      github.event_name == 'schedule'
+      || github.event_name == 'workflow_dispatch'
       || contains(github.event.pull_request.labels.*.name, 'ship')
       || (github.event.action == 'unlabeled' && github.event.label.name == 'ship')
-    uses: burin-labs/.github/.github/workflows/smart-ship.yml@ksinder/smart-ship-reusable
+    uses: burin-labs/.github/.github/workflows/smart-ship.yml@main
     with:
       burin-ref: ksinder/smart-ship
     secrets:
