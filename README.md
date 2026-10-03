@@ -6,3 +6,5 @@ Numeric counter example:
 ```text
 counter: 1
 ```
+
+Sandbox for Smart Ship end-to-end tests. Label a PR `ship` to hand it to the shepherd.
