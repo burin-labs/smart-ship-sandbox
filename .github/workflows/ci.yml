@@ -11,4 +11,5 @@ jobs:
       - name: Check
         env:
           EVENT: ${{ github.event_name }}
+          CHECK_SLEEP: 90
         run: ./check.sh
