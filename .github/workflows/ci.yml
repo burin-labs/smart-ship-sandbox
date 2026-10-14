@@ -1,15 +1,41 @@
 name: CI
 on:
+  push:
+    branches: [main]
   pull_request:
   merge_group:
+
+permissions:
+  contents: read
 jobs:
   ci-status:
     name: CI status
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Check
+        id: check
         env:
           EVENT: ${{ github.event_name }}
           CHECK_SLEEP: 90
         run: ./check.sh
+      - name: Bind the observed report to this execution
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s .ship-report.xml
+          report_digest="$(sha256sum .ship-report.xml | cut -d ' ' -f 1)"
+          inventory_digest="$(sha256sum verification/inventory.json | cut -d ' ' -f 1)"
+          printf '{"schema":"smart-ship.github-stock-report.v1","repository":"%s","commit":"%s","run":%s,"attempt":%s,"job":"%s","inventory":"sha256:%s","report":{"path":".ship-report.xml","digest":"sha256:%s"}}\n' \
+            "$GITHUB_REPOSITORY" "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$GITHUB_JOB" "$inventory_digest" "$report_digest" > stock-report-receipt.json
+      - name: Preserve the actual verification report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: stock-verification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            .ship-report.xml
+            stock-report-receipt.json
+          include-hidden-files: true
+          if-no-files-found: error
