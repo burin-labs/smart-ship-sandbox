@@ -16,6 +16,8 @@ The workbench control probe verifies queue recovery and an explicit human handof
 Run `python3 verification/run_tests.py` from the repository root. It executes
 the arithmetic and capacity tests and writes `.ship-report.xml` with actual
 case outcomes. CI retains that report for passing and failing executions.
+`verification/inventory.json` declares the required cases; missing, unexpected,
+duplicated, or undiscovered cases fail the check even if the observed cases pass.
 
 The capacity fixture starts with ten slots and two workers. Reducing
 `IDLE_CAPACITY` and `expectations.json` to two passes alone. Increasing

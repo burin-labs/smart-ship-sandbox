@@ -1,4 +1,6 @@
 """Run the complete stock unittest inventory and report cases that actually started."""
+import json
+from pathlib import Path
 import sys
 import unittest
 import xml.etree.ElementTree as xml
@@ -13,6 +15,12 @@ class ObservedResult(unittest.TextTestResult):
         self.observed.append(test)
         super().startTest(test)
 
+
+expected = json.loads(Path("verification/inventory.json").read_text())
+if (not isinstance(expected, list) or not expected
+        or any(not isinstance(name, str) or not name for name in expected)
+        or len(set(expected)) != len(expected)):
+    raise ValueError("the declared test inventory is empty, malformed, or duplicated")
 
 suite = unittest.TestSuite([
     unittest.defaultTestLoader.discover(".", pattern="test_calc.py"),
@@ -34,4 +42,11 @@ for case in result.observed:
     elif case.id() in skips:
         xml.SubElement(node, "skipped", message=skips[case.id()])
 xml.ElementTree(root).write(".ship-report.xml", encoding="utf-8", xml_declaration=True)
-sys.exit(0 if result.wasSuccessful() else 1)
+observed = [case.id() for case in result.observed]
+missing = sorted(set(expected) - set(observed))
+unexpected = sorted(set(observed) - set(expected))
+complete = not missing and not unexpected and len(set(observed)) == len(observed)
+print(json.dumps({"declared": len(expected), "observed": len(observed),
+                  "missing": missing, "unexpected": unexpected,
+                  "complete": complete}), file=sys.stderr)
+sys.exit(0 if result.wasSuccessful() and complete else 1)
