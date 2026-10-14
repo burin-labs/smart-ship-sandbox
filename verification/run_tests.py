@@ -24,7 +24,9 @@ if (not isinstance(expected, list) or not expected
 
 suite = unittest.TestSuite([
     unittest.defaultTestLoader.discover(".", pattern="test_calc.py"),
-    unittest.defaultTestLoader.discover("verification", pattern="test_*.py"),
+    unittest.defaultTestLoader.discover(
+        "verification", pattern="test_*.py", top_level_dir="verification"
+    ),
 ])
 result = unittest.TextTestRunner(resultclass=ObservedResult, verbosity=2).run(suite)
 root = xml.Element("testsuite", tests=str(result.testsRun),
