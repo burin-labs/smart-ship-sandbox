@@ -1,5 +1,6 @@
 import {
   GithubCiArtifact,
+  GithubCiArtifactRead,
   GithubCiAssessment,
   load_github_issuer,
   replay_github_ci,
@@ -40,20 +41,18 @@ fn main(harness: Harness) {
   let wrong_attempt: list<GithubCiArtifact> = []
   let poisoned_reuse: list<GithubCiArtifact> = []
   for artifact in archive.artifacts {
-    match artifact.result {
-      Err(_) -> {
-        throw "positive original archive contains an unresolved artifact"
-      }
-      Ok(receipt) -> {
-        const run = receipt.data
-        invalid_signature = invalid_signature
-          + [artifact + {result: Ok(receipt + {data: run + {proof: run.proof + {signature: ""}}})}]
-        wrong_attempt = wrong_attempt
-          + [artifact + {result: Ok(receipt + {run_attempt: receipt.run_attempt + 1})}]
-        poisoned_reuse = poisoned_reuse
-          + [artifact + {result: Ok(receipt + {data: run + {proof: run.proof + {mode: "reused"}}})}]
-      }
+    if artifact.status == "unavailable" {
+      throw "positive original archive contains an unresolved artifact"
     }
+    const read = schema_expect(artifact, schema_of(GithubCiArtifactRead))
+    const receipt = read.receipt
+    const run = receipt.data
+    invalid_signature = invalid_signature
+      + [read + {receipt: receipt + {data: run + {proof: run.proof + {signature: ""}}}}]
+    wrong_attempt = wrong_attempt
+      + [read + {receipt: receipt + {run_attempt: receipt.run_attempt + 1}}]
+    poisoned_reuse = poisoned_reuse
+      + [read + {receipt: receipt + {data: run + {proof: run.proof + {mode: "reused"}}}}]
   }
   const signature = replay(archive + {artifacts: invalid_signature})
   require signature.assessment.status == "invalid" && len(signature.assessment.checks.invalid) > 0,
