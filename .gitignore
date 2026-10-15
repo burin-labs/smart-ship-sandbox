@@ -2,3 +2,4 @@ __pycache__/
 .ship-report.xml
 stock-report-receipt.json
 .harn/
+.codex/
