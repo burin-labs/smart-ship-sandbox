@@ -1,5 +1,5 @@
 import {spawnSync} from 'node:child_process';
-import {readFileSync, writeFileSync, mkdirSync} from 'node:fs';
+import {readFileSync, writeFileSync, mkdirSync, realpathSync} from 'node:fs';
 import {resolve, dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
@@ -16,6 +16,11 @@ const modes = {
 const selected = modes[mode];
 if (!selected || !inputPath || !outputPath || process.argv.length !== 5) throw new Error('Expected prepare|execute|issue, public input path and public output path');
 const publicInput = JSON.parse(readFileSync(inputPath, 'utf8'));
+const checkout = realpathSync(resolve(process.env.GITHUB_WORKSPACE ?? process.cwd()));
+if (mode !== 'issue') {
+  const requestedWorkspace = mode === 'prepare' ? publicInput.workspace : publicInput.plan.job.workspace;
+  if (realpathSync(resolve(requestedWorkspace)) !== checkout) throw new Error('Stock request workspace differs from the host checkout');
+}
 const secretBuffers = [];
 let payload;
 let frame;
@@ -38,11 +43,14 @@ try {
   payload.fill(0);
   const outputDirectory = dirname(resolve(outputPath));
   mkdirSync(outputDirectory, {recursive: true});
-  const workspace = mode === 'prepare' ? publicInput.workspace : mode === 'execute' ? publicInput.plan.job.workspace : outputDirectory;
+  const workspace = mode === 'issue' ? realpathSync(outputDirectory) : checkout;
   const args = ['run', '--standalone', '--parent-secret-stdin', '--read-only-root', root, '--read-only-root', resolve(inputPath), '--write-root', workspace, '--write-root', outputDirectory];
   if (selected.network) args.push('--allow-process-network');
-  args.push(selected.script, '--', resolve(inputPath));
+  args.push(selected.script, '--');
+  if (mode === 'issue') args.push(join(driver, 'issuer.json'));
+  args.push(resolve(inputPath));
   const result = spawnSync('harn', args, {
+    cwd: workspace,
     input: frame, maxBuffer: 16 * 1024 * 1024,
     env: Object.fromEntries(['PATH', 'HOME', 'TMPDIR', 'TMP', 'TEMP'].filter(name => process.env[name]).map(name => [name, process.env[name]])),
     encoding: 'utf8',

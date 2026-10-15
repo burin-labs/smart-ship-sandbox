@@ -60,7 +60,7 @@ jobs:
           harn run --standalone --read-only-root "$RUNNER_TEMP/smart-ship-proof"
           "$RUNNER_TEMP/smart-ship-proof/driver/refusal-drill.harn" --
           "$RUNNER_TEMP/smart-ship-proof/result/admission-result.json"
-          "$RUNNER_TEMP/smart-ship-proof/prepared/admission-request.json"
+          "$RUNNER_TEMP/smart-ship-proof/driver/issuer.json"
           > "$RUNNER_TEMP/smart-ship-proof/result/refusal-controls.json"
       - name: Preserve admission evidence including pending or failing names
         if: always()

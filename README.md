@@ -42,6 +42,10 @@ only after vault read-back and Harn signature validation succeed:
 - `SMART_SHIP_EXECUTOR_KEY`
 - `SMART_SHIP_ADMISSION_KEY`
 
+The trusted `issuer.json` owns the producer workflow, exact job bindings and
+credential references. Preparation and issuance load the same public policy.
+Downloaded dispatch artifacts cannot choose their own policy or issuer.
+
 Run `admission-verification.yml` on `main`, supplying the exact pull request
 number as `pull` and its current commit as `head`. It measures the clean stock
 command, signs scope before execution, registers the original shared CI job

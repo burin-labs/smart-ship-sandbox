@@ -1,33 +1,29 @@
 import {
   GithubCiArtifact,
   GithubCiAssessment,
-  GithubCiJob,
-  GithubCiProducerPolicy,
+  load_github_issuer,
   replay_github_ci,
 } from "smart-ship/github"
 import { SignedAdmission, verify_admission } from "smart-ship/lib"
 
 type Bundle = {observation: GithubCiAssessment, admission: SignedAdmission?}
 
-type Configuration = {producer_policy: GithubCiProducerPolicy, jobs: list<GithubCiJob>}
-
 fn main(harness: Harness) {
-  require len(argv) == 2, "pass the actual signed observation and frozen admission request files"
+  require len(argv) == 2,
+    "pass the actual signed observation and trusted issuer configuration files"
   const bundle: Bundle = schema_expect(json_parse(harness.fs.read_text(argv[0])), schema_of(Bundle))
-  const configuration: Configuration = schema_expect(
-    json_parse(harness.fs.read_text(argv[1])),
-    schema_of(Configuration),
-  )
+  const configuration = load_github_issuer(harness.fs, argv[1])
   const archive = bundle.observation
   const signed = bundle.admission
   require signed != nil && signed.record == archive.record,
     "refusal drill needs a non-null original signed admission"
-  require verify_admission(signed, archive.record.policy).status == "admitted",
+  require verify_admission(signed, configuration.policy).status == "admitted",
     "original signed admission does not qualify"
   const replay = fn(value: GithubCiAssessment) { return replay_github_ci(
+    configuration.policy,
     value,
-    configuration.producer_policy,
-    configuration.jobs,
+    configuration.settings.producer_policy,
+    configuration.settings.jobs,
   ) }
   const positive = replay(archive)
   require positive == archive && positive.assessment.status == "admitted"

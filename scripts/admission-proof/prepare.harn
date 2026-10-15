@@ -1,12 +1,14 @@
-import { GithubCiJob, github_ci_identities, read_github_reviewed_change } from "smart-ship/github"
+import {
+  github_ci_identities,
+  load_github_issuer,
+  read_github_reviewed_change,
+} from "smart-ship/github"
 import {
   AdmissionRequest,
   AdmissionScope,
   JobInputs,
   LocalJob,
-  Policy,
   policy_digest,
-  policy_errors,
   prepare_job,
   scope_bytes,
 } from "smart-ship/lib"
@@ -18,18 +20,19 @@ type Input = {
   pull: int,
   run: int,
   attempt: int,
-  policy: Policy,
+  configuration: string,
 }
 
 fn main(harness: Harness) {
   require len(argv) == 1, "pass one trusted preparation input file"
   const input: Input = schema_expect(json_parse(harness.fs.read_text(argv[0])), schema_of(Input))
-  require input.pull > 0 && input.run > 0 && input.attempt > 0
-    && len(policy_errors(input.policy)) == 0,
+  const config = load_github_issuer(harness.fs, input.configuration)
+  const policy = config.policy
+  require input.pull > 0 && input.run > 0 && input.attempt > 0,
     "sandbox preparation requires a valid installation and exact producer"
   const repository = "burin-labs/smart-ship-sandbox"
   const job: LocalJob = {
-    installation: input.policy.installation,
+    installation: policy.installation,
     id: "stock-python",
     repository: repository,
     workspace: input.workspace,
@@ -78,8 +81,8 @@ fn main(harness: Harness) {
   )
   const scope: AdmissionScope = {
     schema: "smart-ship.admission-scope.v1",
-    installation: input.policy.installation,
-    policy_digest: policy_digest(input.policy),
+    installation: policy.installation,
+    policy_digest: policy_digest(policy),
     rule: "sandbox-stock",
     reviewed_head: observed.source.head,
     reviewed_base: observed.source.base,
@@ -88,9 +91,9 @@ fn main(harness: Harness) {
     inventory_complete: true,
   }
   const request: AdmissionRequest = {
-    installation: input.policy.installation,
-    policy: input.policy,
-    policy_digest: policy_digest(input.policy),
+    installation: policy.installation,
+    policy: policy,
+    policy_digest: policy_digest(policy),
     source: observed.source,
     reviews: observed.reviews,
     scope: {
@@ -99,19 +102,7 @@ fn main(harness: Harness) {
       signature: ed25519_sign(harness.secrets.read("smart-ship/scope"), scope_bytes(scope)),
     },
   }
-  const jobs: list<GithubCiJob> = [
-    {
-      id: "stock-python",
-      legs: [
-        {
-          requirement: "stock-python",
-          name: "Run stock Python tests",
-          artifact_name: "stock-python-result",
-          member_name: "execution.json",
-        },
-      ],
-    },
-  ]
+  const jobs = config.settings.jobs
   const execution = {
     action: "execute",
     plan: plan,
@@ -122,17 +113,6 @@ fn main(harness: Harness) {
     action: "issue",
     request: request,
     producer: {run_id: input.run, attempt: input.attempt},
-    producer_policy: {
-      repository: repository,
-      workflow: "admission-verification.yml",
-      events: ["workflow_dispatch"],
-      registrarJob: "Prepare signed scope",
-      registrarStep: "Register original stock inputs",
-    },
-    run_name: "Original stock verification",
-    jobs: jobs,
-    token_secret: "github/access-token",
-    issuer: {id: "sandbox-admission", secret: "smart-ship/admission"},
   }
   harness.fs.mkdir(input.output, true)
   for file in [
