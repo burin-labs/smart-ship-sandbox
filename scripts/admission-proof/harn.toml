@@ -1,0 +1,8 @@
+[package]
+name = "sandbox-admission-proof"
+version = "0.0.0"
+description = "Trusted read-only sandbox qualification for original CI admission."
+harn = ">=0.10.166,<0.11"
+
+[dependencies]
+smart-ship = { path = "../package" }

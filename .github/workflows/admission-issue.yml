@@ -1,0 +1,78 @@
+name: Inspect original CI and issue signed admission
+
+on:
+  workflow_dispatch:
+    inputs:
+      original_run:
+        description: Completed original stock verification run
+        required: true
+        type: number
+      original_attempt:
+        description: Original attempt number
+        required: true
+        type: number
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+jobs:
+  assess:
+    name: Inspect CI and current review before signing
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - uses: burin-labs/harn/.github/actions/setup-harn@c51ad7dc3484a87c443b38a85dd9be578ddd84a9
+        with:
+          version: 0.10.166
+      - name: Install the actual packed product
+        run: bash scripts/admission-proof/bootstrap.sh
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.original_run }}
+          name: stock-dispatch-${{ inputs.original_run }}-${{ inputs.original_attempt }}
+          path: ${{ runner.temp }}/smart-ship-proof/prepared
+      - name: Require the selected original run and attempt
+        env:
+          ORIGINAL_RUN: ${{ inputs.original_run }}
+          ORIGINAL_ATTEMPT: ${{ inputs.original_attempt }}
+        run: >-
+          node scripts/admission-proof/validate-request.mjs
+          "$RUNNER_TEMP/smart-ship-proof/prepared/admission-request.json"
+          "$ORIGINAL_RUN" "$ORIGINAL_ATTEMPT"
+      - name: Assess real CI and current independent review then issue admission
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SMART_SHIP_ADMISSION_KEY: ${{ secrets.SMART_SHIP_ADMISSION_KEY }}
+        run: >-
+          node "$RUNNER_TEMP/smart-ship-proof/driver/secret-run.mjs" issue
+          "$RUNNER_TEMP/smart-ship-proof/prepared/admission-request.json"
+          "$RUNNER_TEMP/smart-ship-proof/result/admission-result.json"
+      - name: Replay actual observations and require every refusal control
+        run: >-
+          harn run --standalone --read-only-root "$RUNNER_TEMP/smart-ship-proof"
+          "$RUNNER_TEMP/smart-ship-proof/driver/refusal-drill.harn" --
+          "$RUNNER_TEMP/smart-ship-proof/result/admission-result.json"
+          "$RUNNER_TEMP/smart-ship-proof/prepared/admission-request.json"
+          > "$RUNNER_TEMP/smart-ship-proof/result/refusal-controls.json"
+      - name: Preserve admission evidence including pending or failing names
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: signed-admission-observation
+          path: ${{ runner.temp }}/smart-ship-proof/result/admission-result.json
+          if-no-files-found: error
+      - name: Preserve the measured refusal census
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: signed-admission-refusal-controls
+          path: ${{ runner.temp }}/smart-ship-proof/result/refusal-controls.json
+          if-no-files-found: error

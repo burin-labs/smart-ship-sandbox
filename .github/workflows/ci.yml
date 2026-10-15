@@ -19,6 +19,8 @@ jobs:
           EVENT: ${{ github.event_name }}
           CHECK_SLEEP: 90
         run: ./check.sh
+      - name: Verify admission credential handoff
+        run: node --test scripts/admission-proof/secret-run.test.mjs
       - name: Bind the observed report to this execution
         if: always()
         shell: bash
