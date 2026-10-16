@@ -16,9 +16,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: burin-labs/harn/.github/actions/setup-harn@c51ad7dc3484a87c443b38a85dd9be578ddd84a9
+      - uses: burin-labs/harn/.github/actions/setup-harn@0f4c441cd7b062537a7eb607f120725eb6bf5019
         with:
-          version: 0.10.166
+          version: 0.10.167
       - name: Install the pinned packed product and its consumer
         run: bash scripts/admission-proof/bootstrap.sh
       - name: Check the actual installed driver

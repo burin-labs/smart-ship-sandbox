@@ -86,6 +86,7 @@ fn main(harness: Harness) {
     rule: "sandbox-stock",
     reviewed_head: observed.source.head,
     reviewed_base: observed.source.base,
+    reviewed_base_branch: observed.source.base_branch,
     source: plan.source,
     requirements: [required],
     inventory_complete: true,
