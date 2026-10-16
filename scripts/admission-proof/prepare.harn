@@ -62,7 +62,14 @@ fn main(harness: Harness) {
       options: {installation_token: harness.secrets.read("github/access-token")},
     },
   )
-  require is_ok(observation), "current exact-head review census unavailable"
+  require is_ok(observation),
+    "current exact-head review census unavailable ("
+    + if is_err(observation) {
+      unwrap_err(observation).code
+    } else {
+      "unknown"
+    }
+    + ")"
   const observed = unwrap(observation)
   const required: JobInputs = pick(
     plan.requirement,

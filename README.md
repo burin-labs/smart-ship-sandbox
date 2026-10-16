@@ -52,6 +52,9 @@ command, signs scope before execution, registers the original shared CI job
 identity and runs all eight Python cases through the packed product's
 `job-cli.harn`. Candidate commands receive a closed environment. Their
 controller keys arrive only in the Harn parent's memory through stdin.
+The trusted launcher grants preparation access to `api.github.com`, and issuance
+also reads GitHub's artifact storage under `*.blob.core.windows.net`. It discards
+ambient network overrides. Stock execution receives no external network grant.
 
 Once that original workflow finishes, run `admission-issue.yml` on `main` with
 its `original_run` and `original_attempt`. The packed admission command reads
