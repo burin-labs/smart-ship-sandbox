@@ -9,9 +9,9 @@ const driver = dirname(fileURLToPath(import.meta.url));
 const root = resolve(driver, '..');
 const [mode, inputPath, outputPath] = process.argv.slice(2);
 const modes = {
-  prepare: {script: join(driver, 'prepare.harn'), secrets: {'github/access-token': 'GH_TOKEN', 'smart-ship/scope': 'SMART_SHIP_SCOPE_KEY'}, network: true},
-  execute: {script: join(root, 'package/job-cli.harn'), secrets: {'smart-ship/executor': 'SMART_SHIP_EXECUTOR_KEY'}, network: false},
-  issue: {script: join(root, 'package/admission-cli.harn'), secrets: {'github/access-token': 'GH_TOKEN', 'smart-ship/admission': 'SMART_SHIP_ADMISSION_KEY'}, network: true},
+  prepare: {script: join(driver, 'prepare.harn'), secrets: {'github/access-token': 'GH_TOKEN', 'smart-ship/scope': 'SMART_SHIP_SCOPE_KEY'}, hosts: ['api.github.com']},
+  execute: {script: join(root, 'package/job-cli.harn'), secrets: {'smart-ship/executor': 'SMART_SHIP_EXECUTOR_KEY'}, hosts: []},
+  issue: {script: join(root, 'package/admission-cli.harn'), secrets: {'github/access-token': 'GH_TOKEN', 'smart-ship/admission': 'SMART_SHIP_ADMISSION_KEY'}, hosts: ['api.github.com', '*.blob.core.windows.net']},
 };
 const selected = modes[mode];
 if (!selected || !inputPath || !outputPath || process.argv.length !== 5) throw new Error('Expected prepare|execute|issue, public input path and public output path');
@@ -45,14 +45,18 @@ try {
   mkdirSync(outputDirectory, {recursive: true});
   const workspace = mode === 'issue' ? realpathSync(outputDirectory) : checkout;
   const args = ['run', '--standalone', '--parent-secret-stdin', '--read-only-root', root, '--read-only-root', resolve(inputPath), '--write-root', workspace, '--write-root', outputDirectory];
-  if (selected.network) args.push('--allow-process-network');
+  if (selected.hosts.length) args.push('--allow-process-network');
   args.push(selected.script, '--');
   if (mode === 'issue') args.push(join(driver, 'issuer.json'));
   args.push(resolve(inputPath));
   const result = spawnSync('harn', args, {
     cwd: workspace,
     input: frame, maxBuffer: 16 * 1024 * 1024,
-    env: Object.fromEntries(['PATH', 'HOME', 'TMPDIR', 'TMP', 'TEMP'].filter(name => process.env[name]).map(name => [name, process.env[name]])),
+    env: {
+      ...Object.fromEntries(['PATH', 'HOME', 'TMPDIR', 'TMP', 'TEMP'].filter(name => process.env[name]).map(name => [name, process.env[name]])),
+      HARN_EGRESS_DEFAULT: 'deny',
+      ...(selected.hosts.length ? {HARN_EGRESS_ALLOW: selected.hosts.join(',')} : {}),
+    },
     encoding: 'utf8',
   });
   if (result.stdout.trim()) {

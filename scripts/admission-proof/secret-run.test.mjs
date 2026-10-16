@@ -22,23 +22,23 @@ const values = frame.secrets.map(row => Buffer.from(row.value).toString());
 const leaked = values.some(value => process.argv.some(arg => arg.includes(value)) || Object.values(process.env).some(entry => entry.includes(value)));
 const issuing = frame.secrets.some(row => row.id.namespace === 'smart-ship' && row.id.name === 'admission');
 const separateIssuerConfiguration = issuing ? process.argv.at(-2).endsWith('issuer.json') && process.argv.at(-2) !== process.argv.at(-1) : null;
-process.stdout.write(JSON.stringify({version: frame.version, references: frame.secrets.map(row => row.id.namespace + '/' + row.id.name).sort(), leaked, actualFrame: values.length > 0, separateIssuerConfiguration, cwd: process.cwd()}));
+process.stdout.write(JSON.stringify({version: frame.version, references: frame.secrets.map(row => row.id.namespace + '/' + row.id.name).sort(), leaked, actualFrame: values.length > 0, separateIssuerConfiguration, cwd: process.cwd(), network: {default: process.env.HARN_EGRESS_DEFAULT, allow: process.env.HARN_EGRESS_ALLOW ?? null}}));
 `, {mode: 0o700});
-    for (const [mode, expected] of [
-      ['prepare', ['github/access-token', 'smart-ship/scope']],
-      ['execute', ['smart-ship/executor']],
-      ['issue', ['github/access-token', 'smart-ship/admission']],
+    for (const [mode, expected, allowedHosts] of [
+      ['prepare', ['github/access-token', 'smart-ship/scope'], 'api.github.com'],
+      ['execute', ['smart-ship/executor'], null],
+      ['issue', ['github/access-token', 'smart-ship/admission'], 'api.github.com,*.blob.core.windows.net'],
     ]) {
       const input = join(root, `${mode}.json`);
       const output = join(root, `${mode}-result.json`);
       writeFileSync(input, JSON.stringify({workspace: root, plan: {job: {workspace: root}}}));
       const result = spawnSync(process.execPath, [wrapper, mode, input, output], {
         encoding: 'utf8',
-        env: {...process.env, GITHUB_WORKSPACE: root, PATH: `${bin}:${process.env.PATH}`, GH_TOKEN: 'public-nonsecret-token-control', SMART_SHIP_SCOPE_KEY: '1'.repeat(64), SMART_SHIP_EXECUTOR_KEY: '2'.repeat(64), SMART_SHIP_ADMISSION_KEY: '3'.repeat(64)},
+        env: {...process.env, HARN_EGRESS_DEFAULT: 'allow', HARN_EGRESS_ALLOW: '*', GITHUB_WORKSPACE: root, PATH: `${bin}:${process.env.PATH}`, GH_TOKEN: 'public-nonsecret-token-control', SMART_SHIP_SCOPE_KEY: '1'.repeat(64), SMART_SHIP_EXECUTOR_KEY: '2'.repeat(64), SMART_SHIP_ADMISSION_KEY: '3'.repeat(64)},
       });
       assert.equal(result.status, 0, `Handoff failed for ${mode}`);
       const observed = JSON.parse(readFileSync(output, 'utf8'));
-      assert.deepEqual(observed, {version: 1, references: expected, leaked: false, actualFrame: true, separateIssuerConfiguration: mode === 'issue' ? true : null, cwd: root});
+      assert.deepEqual(observed, {version: 1, references: expected, leaked: false, actualFrame: true, separateIssuerConfiguration: mode === 'issue' ? true : null, cwd: root, network: {default: 'deny', allow: allowedHosts}});
     }
     const widened = join(root, 'widened.json');
     const refusedOutput = join(root, 'must-not-exist.json');
