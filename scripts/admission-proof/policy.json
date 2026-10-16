@@ -36,6 +36,6 @@
   }],
   "max_changes": 10,
   "max_unverified_ms": 600000,
-  "max_repair_attempts": 0,
-  "max_repair_usd": 0.0
+  "max_repair_attempts": 3,
+  "max_repair_usd": 5.0
 }

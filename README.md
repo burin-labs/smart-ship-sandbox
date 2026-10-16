@@ -68,3 +68,15 @@ seven refusal controls against that actual observation. These controls do not
 rerun the tests or change the original receipts. Archive all three original
 receipts: the stock result, signed admission observation and refusal census.
 This proof enables no new merge, repair, checkpoint or deployment authority.
+
+## Prepare bounded repair qualification
+
+The proof policy allows at most three repair attempts and USD 5 total per
+incident through the existing attempt ledger. A missing spend report retains
+its full reserved allowance. Configure a new installation with this policy.
+For an existing installation, drain and transfer the policy through the
+controller's fenced operation before starting the grouped repair proof.
+
+After a policy change, run original verification and issuance again for each
+current reviewed head. Earlier zero-budget signatures remain evidence for
+their original policy; they do not authorize the new repair allowance.
