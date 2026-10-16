@@ -8,6 +8,28 @@ on:
 permissions:
   contents: read
 jobs:
+  admission-bootstrap:
+    name: Check the packed admission driver
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: burin-labs/harn/.github/actions/setup-harn@0f4c441cd7b062537a7eb607f120725eb6bf5019
+        with:
+          version: 0.10.167
+      - name: Install the pinned packed product and its consumer
+        run: bash scripts/admission-proof/bootstrap.sh
+      - name: Check the actual installed driver
+        run: |
+          set -euo pipefail
+          harn check "$RUNNER_TEMP/smart-ship-proof/driver/prepare.harn" "$RUNNER_TEMP/smart-ship-proof/driver/refusal-drill.harn"
+          harn lint --strict "$RUNNER_TEMP/smart-ship-proof/driver/prepare.harn" "$RUNNER_TEMP/smart-ship-proof/driver/refusal-drill.harn"
+      - name: Exercise packed stock commands with temporary fixture keys
+        run: |
+          set -euo pipefail
+          HARN_BIN="$(command -v harn)" harn test "$RUNNER_TEMP/smart-ship-proof/package/tests/test_job_command.harn"
   ci-status:
     name: CI status
     runs-on: ubuntu-latest
@@ -19,6 +41,8 @@ jobs:
           EVENT: ${{ github.event_name }}
           CHECK_SLEEP: 90
         run: ./check.sh
+      - name: Verify admission credential handoff
+        run: node --test scripts/admission-proof/secret-run.test.mjs
       - name: Bind the observed report to this execution
         if: always()
         shell: bash

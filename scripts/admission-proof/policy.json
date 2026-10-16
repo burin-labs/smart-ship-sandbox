@@ -1,0 +1,41 @@
+{
+  "schema": "smart-ship.policy.v1",
+  "installation": "smart-ship-sandbox-admission",
+  "repositories": ["burin-labs/smart-ship-sandbox"],
+  "verifier_keys": [{
+    "id": "sandbox-executor",
+    "public_key": "f08d5f2c3a6543851c17a64e692aa2f02d315233056a7e561124892000715b0e",
+    "trust_domain": "sandbox-stock-executor"
+  }],
+  "checkpoint_keys": [{
+    "id": "sandbox-checkpoint",
+    "public_key": "e9e4272d030cccb7c929fd70de1e31cf8bd2f629db201429e996747292a432ee",
+    "trust_domain": "smart-ship-sandbox-admission"
+  }],
+  "scope_keys": [{
+    "id": "sandbox-scope",
+    "public_key": "6e8cd394630fae2b4648deb73e3fad593bddc0a2febcddb754a9947c542db9cb",
+    "trust_domain": "sandbox-stock-scope"
+  }],
+  "admission_keys": [{
+    "id": "sandbox-admission",
+    "public_key": "eb58a0f098bd10909db8e03d35d71cf3bf89e749f5d7fd47f77bc59b92ee2b10",
+    "trust_domain": "smart-ship-sandbox-admission"
+  }],
+  "admission_rules": [{
+    "id": "sandbox-stock",
+    "repository": "burin-labs/smart-ship-sandbox",
+    "repository_id": "R_kgDOU6ip6g",
+    "base_branch": "main",
+    "scope_trust_domain": "sandbox-stock-scope",
+    "review": {
+      "minimum_approvals": 1,
+      "trusted_actor_ids": ["BOT_kgDOEJpFhA"],
+      "allow_forks": false
+    }
+  }],
+  "max_changes": 10,
+  "max_unverified_ms": 600000,
+  "max_repair_attempts": 0,
+  "max_repair_usd": 0.0
+}

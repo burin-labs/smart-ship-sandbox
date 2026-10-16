@@ -1,0 +1,130 @@
+name: Original stock verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      pull:
+        description: Same-repository pull request to test without merging
+        required: true
+        type: number
+      head:
+        description: Exact reviewed pull request head SHA
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+jobs:
+  prepare:
+    name: Prepare signed scope
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      identities: ${{ steps.prepare.outputs.identities }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.head }}
+          persist-credentials: false
+      - uses: burin-labs/harn/.github/actions/setup-harn@0f4c441cd7b062537a7eb607f120725eb6bf5019
+        with:
+          version: 0.10.167
+      - name: Load the trusted workflow's proof driver
+        env:
+          CONTROL_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -euo pipefail
+          [[ "$CONTROL_SHA" =~ ^[0-9a-f]{40}$ ]]
+          git clone --filter=blob:none --no-checkout https://github.com/burin-labs/smart-ship-sandbox.git "$RUNNER_TEMP/proof-control"
+          git -C "$RUNNER_TEMP/proof-control" checkout --detach "$CONTROL_SHA"
+          bash "$RUNNER_TEMP/proof-control/scripts/admission-proof/bootstrap.sh"
+      - name: Measure stock inputs and sign scope before execution
+        id: prepare
+        env:
+          PULL: ${{ inputs.pull }}
+          HEAD: ${{ inputs.head }}
+          GH_TOKEN: ${{ github.token }}
+          SMART_SHIP_SCOPE_KEY: ${{ secrets.SMART_SHIP_SCOPE_KEY }}
+        run: |
+          set -euo pipefail
+          driver="$RUNNER_TEMP/smart-ship-proof/driver"
+          node "$driver/request.mjs" "$PULL" "$HEAD" > "$RUNNER_TEMP/smart-ship-proof/input.json"
+          node "$driver/secret-run.mjs" prepare "$RUNNER_TEMP/smart-ship-proof/input.json" "$RUNNER_TEMP/smart-ship-proof/preparation.json"
+          printf 'identities=%s\n' "$(cat "$RUNNER_TEMP/smart-ship-proof/prepared/identities.json")" >> "$GITHUB_OUTPUT"
+      - name: Register original stock inputs
+        uses: burin-labs/.github/.github/actions/ci-job-proof@a4da07f69b45a057dc46465bea10948f7bf3e0a3
+        with:
+          workflow-file: admission-verification.yml
+          job-identities: ${{ steps.prepare.outputs.identities }}
+          registrar-job: Prepare signed scope
+          registrar-step: Register original stock inputs
+          event-name: ${{ github.event_name }}
+          commit-sha: ${{ github.sha }}
+          github-token: ${{ github.token }}
+      - name: Preserve the frozen dispatch
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: stock-dispatch-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/smart-ship-proof/prepared/*.json
+          if-no-files-found: error
+      - name: Preserve the measured source and package receipt
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: stock-package-receipts
+          path: |
+            ${{ runner.temp }}/smart-ship-proof/package-receipt.json
+            ${{ runner.temp }}/smart-ship-proof/preparation.json
+          if-no-files-found: error
+
+  execute:
+    name: Run stock Python tests
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.head }}
+          persist-credentials: false
+      - uses: burin-labs/harn/.github/actions/setup-harn@0f4c441cd7b062537a7eb607f120725eb6bf5019
+        with:
+          version: 0.10.167
+      - name: Load the trusted workflow's proof driver
+        env:
+          CONTROL_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -euo pipefail
+          [[ "$CONTROL_SHA" =~ ^[0-9a-f]{40}$ ]]
+          git clone --filter=blob:none --no-checkout https://github.com/burin-labs/smart-ship-sandbox.git "$RUNNER_TEMP/proof-control"
+          git -C "$RUNNER_TEMP/proof-control" checkout --detach "$CONTROL_SHA"
+          bash "$RUNNER_TEMP/proof-control/scripts/admission-proof/bootstrap.sh"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: stock-dispatch-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/smart-ship-proof/prepared
+      - name: Execute the frozen stock command without controller credentials
+        env:
+          SMART_SHIP_EXECUTOR_KEY: ${{ secrets.SMART_SHIP_EXECUTOR_KEY }}
+        run: >-
+          node "$RUNNER_TEMP/smart-ship-proof/driver/secret-run.mjs" execute
+          "$RUNNER_TEMP/smart-ship-proof/prepared/execution-request.json"
+          "$RUNNER_TEMP/smart-ship-proof/result/execution.json"
+      - name: Preserve the actual signed stock result
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: stock-python-result
+          path: ${{ runner.temp }}/smart-ship-proof/result/execution.json
+          if-no-files-found: error
+      - name: Preserve the observed JUnit report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: stock-python-junit
+          path: .ship-report.xml
+          include-hidden-files: true
+          if-no-files-found: error

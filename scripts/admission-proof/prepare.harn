@@ -1,0 +1,141 @@
+import {
+  github_ci_identities,
+  load_github_issuer,
+  read_github_reviewed_change,
+} from "smart-ship/github"
+import {
+  AdmissionRequest,
+  AdmissionScope,
+  JobInputs,
+  LocalJob,
+  policy_digest,
+  prepare_job,
+  scope_bytes,
+} from "smart-ship/lib"
+
+type Input = {
+  workspace: string,
+  output: string,
+  head: string,
+  pull: int,
+  run: int,
+  attempt: int,
+  configuration: string,
+}
+
+fn main(harness: Harness) {
+  require len(argv) == 1, "pass one trusted preparation input file"
+  const input: Input = schema_expect(json_parse(harness.fs.read_text(argv[0])), schema_of(Input))
+  const config = load_github_issuer(harness.fs, input.configuration)
+  const policy = config.policy
+  require input.pull > 0 && input.run > 0 && input.attempt > 0,
+    "sandbox preparation requires a valid installation and exact producer"
+  const repository = "burin-labs/smart-ship-sandbox"
+  const job: LocalJob = {
+    installation: policy.installation,
+    id: "stock-python",
+    repository: repository,
+    workspace: input.workspace,
+    command: {
+      kind: "tests",
+      program: "/usr/bin/python3",
+      args: ["verification/run_tests.py"],
+      version_args: ["--version"],
+      timeout_ms: 120000,
+      environment: {PATH: "/usr/bin:/bin", PYTHONDONTWRITEBYTECODE: "1"},
+      test_report: ".ship-report.xml",
+    },
+    outputs: [],
+    trust_domain: "sandbox-stock-executor",
+    run: to_string(input.run),
+    attempt: input.attempt,
+  }
+  const plan = prepare_job(pick(harness, ["clock", "fs", "process", "random", "system"]), job)
+  require plan.source.commit == input.head, "prepared source differs from the requested exact head"
+  const observation = read_github_reviewed_change(
+    harness,
+    {
+      owner: "burin-labs",
+      repo: "smart-ship-sandbox",
+      pull_number: input.pull,
+      expected_head_oid: input.head,
+      options: {installation_token: harness.secrets.read("github/access-token")},
+    },
+  )
+  require is_ok(observation), "current exact-head review census unavailable"
+  const observed = unwrap(observation)
+  const required: JobInputs = pick(
+    plan.requirement,
+    [
+      "id",
+      "kind",
+      "repository",
+      "input_digest",
+      "runtime_digest",
+      "environment_digest",
+      "coverage_digest",
+      "trust_domain",
+      "reuse_allowed",
+      "artifacts",
+    ],
+  )
+  const scope: AdmissionScope = {
+    schema: "smart-ship.admission-scope.v1",
+    installation: policy.installation,
+    policy_digest: policy_digest(policy),
+    rule: "sandbox-stock",
+    reviewed_head: observed.source.head,
+    reviewed_base: observed.source.base,
+    reviewed_base_branch: observed.source.base_branch,
+    source: plan.source,
+    requirements: [required],
+    inventory_complete: true,
+  }
+  const request: AdmissionRequest = {
+    installation: policy.installation,
+    policy: policy,
+    policy_digest: policy_digest(policy),
+    source: observed.source,
+    reviews: observed.reviews,
+    scope: {
+      scope: scope,
+      signer: "sandbox-scope",
+      signature: ed25519_sign(harness.secrets.read("smart-ship/scope"), scope_bytes(scope)),
+    },
+  }
+  const jobs = config.settings.jobs
+  const execution = {
+    action: "execute",
+    plan: plan,
+    dispatch: {kind: "admission", request: request},
+    signer: {id: "sandbox-executor", secret: "smart-ship/executor"},
+  }
+  const admission = {
+    action: "issue",
+    request: request,
+    producer: {run_id: input.run, attempt: input.attempt},
+  }
+  harness.fs.mkdir(input.output, true)
+  for file in [
+    {name: "execution-request.json", content: json_stringify(execution)},
+    {name: "admission-request.json", content: json_stringify(admission)},
+    {
+      name: "identities.json",
+      content: json_stringify(
+        {schema: "burin.ci_job_identity.v1", jobs: github_ci_identities(request, jobs)},
+      ),
+    },
+  ] {
+    harness.fs.write_text(path_join(input.output, file.name), file.content)
+  }
+  harness.stdio.println(
+    json_stringify(
+      {
+        status: "prepared",
+        source: plan.source,
+        requirements: [required.id],
+        reuse_allowed: required.reuse_allowed,
+      },
+    ),
+  )
+}

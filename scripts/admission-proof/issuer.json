@@ -1,0 +1,22 @@
+{
+  "policy_file": "policy.json",
+  "producer_policy": {
+    "repository": "burin-labs/smart-ship-sandbox",
+    "workflow": "admission-verification.yml",
+    "events": ["workflow_dispatch"],
+    "registrarJob": "Prepare signed scope",
+    "registrarStep": "Register original stock inputs"
+  },
+  "run_name": "Original stock verification",
+  "jobs": [{
+    "id": "stock-python",
+    "legs": [{
+      "requirement": "stock-python",
+      "name": "Run stock Python tests",
+      "artifact_name": "stock-python-result",
+      "member_name": "execution.json"
+    }]
+  }],
+  "token_secret": "github/access-token",
+  "issuer": {"id": "sandbox-admission", "secret": "smart-ship/admission"}
+}

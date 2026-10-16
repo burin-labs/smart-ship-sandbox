@@ -1,0 +1,105 @@
+import {
+  GithubCiArtifact,
+  GithubCiArtifactRead,
+  GithubCiAssessment,
+  load_github_issuer,
+  replay_github_ci,
+} from "smart-ship/github"
+import { SignedAdmission, verify_admission } from "smart-ship/lib"
+
+type Bundle = {observation: GithubCiAssessment, admission: SignedAdmission?}
+
+fn main(harness: Harness) {
+  require len(argv) == 2,
+    "pass the actual signed observation and trusted issuer configuration files"
+  const bundle: Bundle = schema_expect(json_parse(harness.fs.read_text(argv[0])), schema_of(Bundle))
+  const configuration = load_github_issuer(harness.fs, argv[1])
+  const archive = bundle.observation
+  const signed = bundle.admission
+  require signed != nil && signed.record == archive.record,
+    "refusal drill needs a non-null original signed admission"
+  require verify_admission(signed, configuration.policy).status == "admitted",
+    "original signed admission does not qualify"
+  const replay = fn(value: GithubCiAssessment) { return replay_github_ci(
+    configuration.policy,
+    value,
+    configuration.settings.producer_policy,
+    configuration.settings.jobs,
+  ) }
+  const positive = replay(archive)
+  require positive == archive && positive.assessment.status == "admitted"
+    && positive.assessment.checks.executed > 0
+    && positive.assessment.checks.required > 0,
+    "actual original observation did not replay exactly"
+  let controls: list<{name: string, status: string}> = []
+  const missing = replay(archive + {artifacts: []})
+  require missing.assessment.status == "pending" && len(missing.assessment.checks.pending) > 0
+    && missing.assessment.checks.executed == 0,
+    "missing actual execution became success"
+  controls = controls + [{name: "missing-structured-execution", status: "pending"}]
+  let invalid_signature: list<GithubCiArtifact> = []
+  let wrong_attempt: list<GithubCiArtifact> = []
+  let poisoned_reuse: list<GithubCiArtifact> = []
+  for artifact in archive.artifacts {
+    if artifact.status == "unavailable" {
+      throw "positive original archive contains an unresolved artifact"
+    }
+    const read = schema_expect(artifact, schema_of(GithubCiArtifactRead))
+    const receipt = read.receipt
+    const run = receipt.data
+    invalid_signature = invalid_signature
+      + [read + {receipt: receipt + {data: run + {proof: run.proof + {signature: ""}}}}]
+    wrong_attempt = wrong_attempt
+      + [read + {receipt: receipt + {run_attempt: receipt.run_attempt + 1}}]
+    poisoned_reuse = poisoned_reuse
+      + [read + {receipt: receipt + {data: run + {proof: run.proof + {mode: "reused"}}}}]
+  }
+  const signature = replay(archive + {artifacts: invalid_signature})
+  require signature.assessment.status == "invalid" && len(signature.assessment.checks.invalid) > 0,
+    "invalid executor signature was admitted"
+  controls = controls + [{name: "invalid-executor-signature", status: "invalid"}]
+  const moved = replay(
+    archive + {record: archive.record + {source: archive.record.source + {head: "0".repeat(40)}}},
+  )
+  require moved.assessment.status == "invalid"
+    && moved.assessment.invalid.contains("admission-source-or-policy"),
+    "changed reviewed head was admitted"
+  controls = controls + [{name: "changed-reviewed-head", status: "invalid"}]
+  for control in [
+    {name: "wrong-original-attempt", value: archive + {artifacts: wrong_attempt}},
+    {name: "poisoned-reuse-pointer", value: archive + {artifacts: poisoned_reuse}},
+    {
+      name: "wrong-producer",
+      value: archive
+        + {
+          inspection: archive.inspection
+            + {producer: archive.inspection.producer + {id: archive.inspection.producer.id + 1}},
+        },
+    },
+    {name: "missing-provider-read", value: archive + {source_reads: archive.source_reads.slice(1)}},
+  ] {
+    require is_err(
+      try {
+        replay(control.value)
+      },
+    ),
+      control.name + " did not refuse"
+    controls = controls + [{name: control.name, status: "refused"}]
+  }
+  require len(controls) == 7, "refusal census is incomplete"
+  harness.stdio.println(
+    json_stringify(
+      {
+        status: "passed",
+        original_run: archive.inspection.producer.id,
+        original_attempt: archive.inspection.producer.run_attempt,
+        required: positive.assessment.checks.required,
+        executed: positive.assessment.checks.executed,
+        pending: positive.assessment.checks.pending,
+        failed: positive.assessment.checks.failed,
+        original_replay: "admitted",
+        controls: controls,
+      },
+    ),
+  )
+}
