@@ -25,7 +25,7 @@ jobs:
       || (github.event.action == 'unlabeled' && github.event.label.name == 'ship')
     uses: burin-labs/.github/.github/workflows/smart-ship.yml@main
     with:
-      burin-ref: 38e9b2f02a0bc42b83c8549d064b41b99319c4ec
+      burin-ref: 8050202f6c67cf17d3a4f942d395c124cb2138bb
     secrets:
       RELEASE_APP_CLIENT_ID: ${{ secrets.RELEASE_APP_CLIENT_ID }}
       RELEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
