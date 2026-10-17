@@ -1,5 +1,7 @@
 # smart-ship-sandbox
-Sandbox for Smart Ship PR shepherd end-to-end tests (burin-code#10067). Safe to break.
+
+Sandbox for Smart Ship PR shepherd end-to-end tests (burin-code#10067).
+Safe to break.
 
 Numeric counter example:
 
@@ -9,7 +11,8 @@ counter: 1
 
 Sandbox for Smart Ship end-to-end tests. Label a PR `ship` to hand it to the shepherd.
 
-The workbench control probe verifies queue recovery and an explicit human handoff before local editing.
+The workbench control probe verifies queue recovery and an explicit human
+handoff before local editing.
 
 ## Run the grouped-change fixture
 
@@ -44,7 +47,8 @@ release projection, not another source of shipping decisions.
 
 Dispatch `pages.yml` on `main` with that `evidence` commit, the exact `checkpoint`
 digest and verified `source` commit. The consumer loads its own trust document
-and the attested package candidate from run `39005135303`. It rejects an invalid
+and the attested package pinned in `scripts/controller-source.json`. It rejects
+an invalid
 signature, incomplete proof, changed source or substituted output through the
 generic release guard. It also requires the last healthy deployed commit to be
 an ancestor of the requested source, and checks the two site members before
@@ -124,6 +128,31 @@ incident through the existing attempt ledger. A missing spend report retains
 its full reserved allowance. Configure a new installation with this policy.
 For an existing installation, drain and transfer the policy through the
 controller's fenced operation before starting the grouped repair proof.
+
+## Prepare the checkpoint handoff
+
+The admission, observer, release guard and controller share the qualified archive
+pin in `scripts/controller-source.json`. They install the original attested bytes;
+admission no longer builds a second package from a source checkout.
+
+After auditing every existing mutation writer, save its complete `WriterEnrollment`
+as an operator-owned JSON file. Set `RUNNER_TEMP` to the private installation
+directory and use a qualified runtime to prepare the controller:
+
+```sh
+node scripts/controller/bootstrap.mjs /absolute/path/to/writer-enrollment.json
+```
+
+The command verifies the archive and installed artifact, fetches the immutable
+deployed checkpoint, checks
+its exact file hash, and writes credential-free installation and provider files.
+It writes no remote authority ref. The public package CLI owns initialization,
+checkpoint authentication, controls and former-writer retirement.
+
+The initial checkpoint retains the known-good source `7a528e7`. Shadow authority
+starts in a newer generation; activation still requires a complete measured
+writer drain and retirement. The existing landing policy remains authoritative
+until that handoff is qualified under issue #43.
 
 After a policy change, run original verification and issuance again for each
 current reviewed head. Earlier zero-budget signatures remain evidence for

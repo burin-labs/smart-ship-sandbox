@@ -3,10 +3,11 @@ set -euo pipefail
 
 # Callers supply pins from trusted control source, never submitted evidence.
 readonly root="${1:?controller installation root required}"
-readonly run="${2:?qualified workflow run required}"
-readonly source="${3:?qualified source commit required}"
-readonly digest="${4:?qualified archive digest required}"
-[[ $# == 4 && "$root" == "${RUNNER_TEMP:?}/"* ]]
+readonly source_file="${2:?trusted controller source file required}"
+[[ $# == 2 && "$root" == "${RUNNER_TEMP:?}/"* ]]
+qualified_pin="$(node -p 'const s = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")); [s.run, s.commit, s.archive_sha256].join("\t")' "$source_file")"
+IFS=$'\t' read -r run source digest <<< "$qualified_pin"
+readonly run source digest
 [[ "$run" =~ ^[1-9][0-9]*$ && "$source" =~ ^[0-9a-f]{40}$ && "$digest" =~ ^[0-9a-f]{64}$ ]]
 mkdir -p "$root/download" "$root/package"
 readonly archive="$root/download/harn-smart-ship-0.1.0.tar.gz"
@@ -21,4 +22,4 @@ gh attestation verify "$archive" --repo burin-labs/harn \
   --format json > "$root/archive-attestation.json"
 tar -xzf "$archive" -C "$root/package" --strip-components=1
 cd "$root/package"
-harn install --frozen
+"${HARN_BIN:-harn}" install --frozen

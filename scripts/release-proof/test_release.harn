@@ -2,6 +2,8 @@ import { execution, fixture, proof } from "../package/fixtures/support"
 import { guard_release } from "./release"
 import { checkpoint_bytes, checkpoint_id, freeze_snapshot, promote } from "smart-ship/lib"
 
+type ArtifactPin = {controller: string}
+
 pipeline test_deployment_guard_accepts_proven_bytes_and_refuses_substitutions(harness: Harness) {
   const root = harness.fs.mkdtemp_in_workspace("release-guard-")
   defer {
@@ -30,7 +32,10 @@ pipeline test_deployment_guard_accepts_proven_bytes_and_refuses_substitutions(ha
   harness.fs.write_text(checkpoint_file, json_stringify(signed))
   const configuration = {
     trust: pick(f.policy, ["installation", "checkpoint_keys"]),
-    controller: "sha256:e2a62a3372d209a5aeead4a9f10fe721386dc107d4f9327f89f7e274f24a5db4",
+    controller: schema_expect(
+      json_parse(harness.fs.read_text(path_join(harness.fs.source_dir(), "configuration.json"))),
+      schema_of(ArtifactPin),
+    ).controller,
   }
   const input = {
     checkpoint_file: checkpoint_file,

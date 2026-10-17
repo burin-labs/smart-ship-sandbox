@@ -4,13 +4,14 @@ import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const scripts = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const source = JSON.parse(readFileSync(join(scripts, 'group-observer/controller-source.json'), 'utf8'));
+const sourceFile = join(scripts, 'controller-source.json');
+const source = JSON.parse(readFileSync(sourceFile, 'utf8'));
 const root = join(resolve(process.env.RUNNER_TEMP), 'smart-ship-observer');
 function run(program, args) {
   const result = spawnSync(program, args, {stdio: 'inherit'});
   if (result.error || result.status !== 0) throw new Error(`Observer bootstrap failed at ${program}`);
 }
-run('bash', [join(scripts, 'install-qualified-controller.sh'), root, String(source.run), source.commit, source.archive_sha256]);
+run('bash', [join(scripts, 'install-qualified-controller.sh'), root, sourceFile]);
 const driver = join(root, 'driver');
 const workspace = join(root, 'objects.git');
 mkdirSync(driver, {recursive: true});
