@@ -28,6 +28,8 @@ test('the installed controller retains the deployed checkpoint and refuses prema
   run(process.execPath, [join(here, 'bootstrap.mjs'), enrollment]);
   const root = join(scratch, 'smart-ship-controller');
   const generated = JSON.parse(readFileSync(join(root, 'driver/installation.json'), 'utf8'));
+  run('git', ['--git-dir', generated.store.workspace, 'config', 'user.name', 'Smart Ship Fixture']);
+  run('git', ['--git-dir', generated.store.workspace, 'config', 'user.email', 'fixture@example.invalid']);
   const provider = JSON.parse(readFileSync(join(root, 'driver/github.json'), 'utf8'));
   assert.deepEqual(provider.installation, generated);
   assert.equal(provider.token_reference, 'github/access-token');

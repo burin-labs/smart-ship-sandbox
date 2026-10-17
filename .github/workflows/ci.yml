@@ -92,6 +92,8 @@ jobs:
         with:
           version: 0.10.167
       - name: Install the pinned packed product and its consumer
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: bash scripts/admission-proof/bootstrap.sh
       - name: Check the actual installed driver
         run: |
@@ -104,6 +106,8 @@ jobs:
           HARN_BIN="$(command -v harn)" harn test "$RUNNER_TEMP/smart-ship-proof/package/tests/test_job_command.harn"
   ci-status:
     name: CI status
+    needs: [controller-bootstrap, release-bootstrap, observer-bootstrap, admission-bootstrap]
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -115,6 +119,15 @@ jobs:
         run: ./check.sh
       - name: Verify admission credential handoff
         run: node --test scripts/admission-proof/secret-run.test.mjs
+      - name: Require every installation proof
+        if: >-
+          always() && (
+            needs.controller-bootstrap.result != 'success'
+            || needs.release-bootstrap.result != 'success'
+            || needs.observer-bootstrap.result != 'success'
+            || needs.admission-bootstrap.result != 'success'
+          )
+        run: exit 1
       - name: Bind the observed report to this execution
         if: always()
         shell: bash
