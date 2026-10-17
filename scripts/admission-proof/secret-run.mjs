@@ -16,6 +16,9 @@ const modes = {
 };
 const selected = modes[mode];
 if (!selected || !inputPath || !outputPath || process.argv.length !== 5) throw new Error('Expected prepare|execute|issue|observe, public input path and public output path');
+const pinnedRuntime = process.env.HARN_BIN && process.env.HARN_BIN !== 'harn'
+  ? realpathSync(process.env.HARN_BIN) : null;
+const runtime = pinnedRuntime || 'harn';
 const publicInput = JSON.parse(readFileSync(inputPath, 'utf8'));
 const checkout = realpathSync(resolve(process.env.GITHUB_WORKSPACE ?? process.cwd()));
 if (mode !== 'issue' && mode !== 'observe') {
@@ -58,11 +61,13 @@ try {
   if (mode === 'issue') args.push(join(driver, 'issuer.json'));
   if (mode === 'observe') args.push(join(driver, 'observer.json'));
   args.push(resolve(inputPath));
-  const result = spawnSync('harn', args, {
+  const result = spawnSync(runtime, args, {
     cwd: workspace,
     input: frame, maxBuffer: 16 * 1024 * 1024,
     env: {
       ...Object.fromEntries(['PATH', 'HOME', 'TMPDIR', 'TMP', 'TEMP'].filter(name => process.env[name]).map(name => [name, process.env[name]])),
+      ...(pinnedRuntime ? {PATH: `${dirname(pinnedRuntime)}:${process.env.PATH || ''}`} : {}),
+      HARN_BIN: runtime,
       HARN_EGRESS_DEFAULT: 'deny',
       ...(selected.hosts.length ? {HARN_EGRESS_ALLOW: selected.hosts.join(',')} : {}),
     },

@@ -38,7 +38,7 @@ process.stdout.write(JSON.stringify({version: frame.version, references: frame.s
       writeFileSync(input, JSON.stringify({workspace: root, plan: {job: {workspace: root}}}));
       const result = spawnSync(process.execPath, [wrapper, mode, input, output], {
         encoding: 'utf8',
-        env: {...process.env, HARN_EGRESS_DEFAULT: 'allow', HARN_EGRESS_ALLOW: '*', GITHUB_WORKSPACE: root, PATH: `${bin}:${process.env.PATH}`, GH_TOKEN: 'public-nonsecret-token-control', SMART_SHIP_SCOPE_KEY: '1'.repeat(64), SMART_SHIP_EXECUTOR_KEY: '2'.repeat(64), SMART_SHIP_ADMISSION_KEY: '3'.repeat(64)},
+        env: {...process.env, HARN_BIN: harn, HARN_EGRESS_DEFAULT: 'allow', HARN_EGRESS_ALLOW: '*', GITHUB_WORKSPACE: root, PATH: `${bin}:${process.env.PATH}`, GH_TOKEN: 'public-nonsecret-token-control', SMART_SHIP_SCOPE_KEY: '1'.repeat(64), SMART_SHIP_EXECUTOR_KEY: '2'.repeat(64), SMART_SHIP_ADMISSION_KEY: '3'.repeat(64)},
       });
       assert.equal(result.status, 0, `Handoff failed for ${mode}`);
       const observed = JSON.parse(readFileSync(output, 'utf8'));
@@ -48,7 +48,7 @@ process.stdout.write(JSON.stringify({version: frame.version, references: frame.s
     const refusedOutput = join(root, 'must-not-exist.json');
     writeFileSync(widened, JSON.stringify({plan: {job: {workspace: '/'}}}));
     const refused = spawnSync(process.execPath, [wrapper, 'execute', widened, refusedOutput], {
-      encoding: 'utf8', env: {...process.env, GITHUB_WORKSPACE: root, PATH: `${bin}:${process.env.PATH}`, SMART_SHIP_EXECUTOR_KEY: '2'.repeat(64)},
+      encoding: 'utf8', env: {...process.env, HARN_BIN: harn, GITHUB_WORKSPACE: root, PATH: `${bin}:${process.env.PATH}`, SMART_SHIP_EXECUTOR_KEY: '2'.repeat(64)},
     });
     assert.notEqual(refused.status, 0);
     assert.match(refused.stderr, /workspace differs from the host checkout/);

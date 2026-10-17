@@ -36,6 +36,7 @@ jobs:
       - name: Load the trusted workflow's proof driver
         env:
           CONTROL_SHA: ${{ github.workflow_sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           [[ "$CONTROL_SHA" =~ ^[0-9a-f]{40}$ ]]
@@ -96,6 +97,7 @@ jobs:
       - name: Load the trusted workflow's proof driver
         env:
           CONTROL_SHA: ${{ github.workflow_sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           [[ "$CONTROL_SHA" =~ ^[0-9a-f]{40}$ ]]
