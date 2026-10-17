@@ -98,6 +98,25 @@ rerun the tests or change the original receipts. Archive all three original
 receipts: the stock result, signed admission observation and refusal census.
 This proof enables no new merge, repair, checkpoint or deployment authority.
 
+## Observe a reviewed group
+
+Dispatch `group-observer.yml` on `main` with an exact `evidence` commit that
+contains `group.json`. That file holds the repository and complete original
+signed admissions, in composition order. Keep the original records unchanged.
+Archive both the request and observation so the result can be replayed.
+
+The workflow loads its package pin and trust policy from its own protected
+source, then reads current reviews and composes the proposed Git tree. Its
+GitHub token has read-only permissions. No signing key is configured. The
+observer cannot merge, rerun verification, repair, or advance a checkpoint.
+It does not run commands from submitted source.
+
+Read the result's `status`, required and observed counts, and named pending,
+failed, or invalid inputs. A workflow can finish successfully while reporting
+`blocked`. A `composable` result forecasts the exact combined tree; it does
+not prove that tree's tests pass or grant shipping authority. The existing
+queue and checkpoint release guard still own their respective decisions.
+
 ## Prepare bounded repair qualification
 
 The proof policy allows at most three repair attempts and USD 5 total per
