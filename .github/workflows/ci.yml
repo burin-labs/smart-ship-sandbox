@@ -57,6 +57,8 @@ jobs:
           observer="$RUNNER_TEMP/smart-ship-observer/package/github-observer-cli.harn"
           harn check "$observer"
           harn lint --strict "$observer"
+      - name: Exercise the credential handoff through the real CLI
+        run: HARN_BIN="$(command -v harn)" node --test scripts/admission-proof/secret-run.integration.test.mjs
   admission-bootstrap:
     name: Check the packed admission driver
     runs-on: ubuntu-24.04

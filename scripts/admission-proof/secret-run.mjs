@@ -45,11 +45,15 @@ try {
   const outputDirectory = dirname(resolve(outputPath));
   mkdirSync(outputDirectory, {recursive: true});
   const workspace = mode === 'issue' || mode === 'observe' ? realpathSync(outputDirectory) : checkout;
-  const args = ['run', '--standalone', '--parent-secret-stdin', '--read-only-root', root, '--read-only-root', resolve(inputPath), '--write-root', workspace, '--write-root', outputDirectory];
+  const args = ['run', '--standalone', '--parent-secret-stdin'];
   // The pinned observer only reads provider facts and composes Git objects.
   // Host mode lets its artifact guard inspect the installed package metadata.
-  if (mode === 'observe') args.push('--no-sandbox');
-  if (selected.hosts.length) args.push('--allow-process-network');
+  if (mode === 'observe') {
+    args.push('--no-sandbox');
+  } else {
+    args.push('--read-only-root', root, '--read-only-root', resolve(inputPath), '--write-root', workspace, '--write-root', outputDirectory);
+    if (selected.hosts.length) args.push('--allow-process-network');
+  }
   args.push(selected.script, '--');
   if (mode === 'issue') args.push(join(driver, 'issuer.json'));
   if (mode === 'observe') args.push(join(driver, 'observer.json'));
