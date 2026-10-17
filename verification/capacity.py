@@ -1,4 +1,4 @@
-IDLE_CAPACITY = 10
+IDLE_CAPACITY = 2
 
 
 def capacity_for(workers):
