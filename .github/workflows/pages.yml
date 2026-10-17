@@ -1,12 +1,24 @@
 name: Deploy
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      evidence:
+        description: Immutable Git commit containing checkpoint.json and artifact.tar
+        required: true
+        type: string
+      checkpoint:
+        description: Exact sha256 checkpoint identity to publish
+        required: true
+        type: string
+      source:
+        description: Exact verified main commit to publish
+        required: true
+        type: string
 
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 
@@ -16,16 +28,65 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     environment:
       name: github-pages
     steps:
-      - uses: actions/checkout@v4
-      - name: Build the site with its deploy receipt
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.source }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: burin-labs/harn/.github/actions/setup-harn@0f4c441cd7b062537a7eb607f120725eb6bf5019
+        with:
+          version: 0.10.167
+      - name: Load the workflow's trusted release guard and attested controller
+        env:
+          CONTROL_SHA: ${{ github.workflow_sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir -p _site
-          status="$(tr -d '[:space:]' < app/status.txt)"
-          printf '{"status":"%s","commit":"%s"}\n' "$status" "$GITHUB_SHA" > _site/health.json
-          echo "Smart Ship sandbox" > _site/index.html
-      - uses: actions/upload-pages-artifact@v3
-      - uses: actions/deploy-pages@v4
+          set -euo pipefail
+          [[ "$CONTROL_SHA" =~ ^[0-9a-f]{40}$ ]]
+          git clone --filter=blob:none --no-checkout https://github.com/burin-labs/smart-ship-sandbox.git "$RUNNER_TEMP/release-control"
+          git -C "$RUNNER_TEMP/release-control" checkout --detach "$CONTROL_SHA"
+          bash "$RUNNER_TEMP/release-control/scripts/release-proof/bootstrap.sh"
+      - name: Read the immutable signed checkpoint and proven site bytes
+        env:
+          EVIDENCE: ${{ inputs.evidence }}
+        run: |
+          set -euo pipefail
+          [[ "$EVIDENCE" =~ ^[0-9a-f]{40}$ ]]
+          mkdir -p "$RUNNER_TEMP/smart-ship-release/incoming"
+          git fetch --no-tags https://github.com/burin-labs/smart-ship-sandbox.git "$EVIDENCE"
+          git show "$EVIDENCE:checkpoint.json" > "$RUNNER_TEMP/smart-ship-release/incoming/checkpoint.json"
+          git show "$EVIDENCE:artifact.tar" > "$RUNNER_TEMP/smart-ship-release/incoming/artifact.tar"
+      - name: Refuse an unproven source, stale deployment or substituted artifact
+        env:
+          SOURCE: ${{ inputs.source }}
+          CHECKPOINT: ${{ inputs.checkpoint }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/smart-ship-release"
+          node "$root/driver/request.mjs"
+          HARN_BIN="$(command -v harn)" harn run --standalone --read-only-root "$root" "$root/driver/release.harn" -- "$root/request.json" > "$root/qualification.json"
+          python3 "$root/driver/inspect_site.py" "$root/incoming/artifact.tar" "$SOURCE"
+      - name: Preserve the release qualification and previous deployment identity
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: smart-ship-release-qualification
+          path: |
+            ${{ runner.temp }}/smart-ship-release/qualification.json
+            ${{ runner.temp }}/smart-ship-release/previous-deployment.json
+            ${{ runner.temp }}/smart-ship-release/request.json
+            ${{ runner.temp }}/smart-ship-release/archive-attestation.json
+          if-no-files-found: error
+      - name: Upload the exact tar bytes accepted by the checkpoint guard
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: github-pages
+          path: ${{ runner.temp }}/smart-ship-release/incoming/artifact.tar
+          compression-level: 0
+          if-no-files-found: error
+      - uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

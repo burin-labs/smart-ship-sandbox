@@ -1,5 +1,6 @@
 __pycache__/
 .ship-report.xml
+.smart-ship-pages.tar
 stock-report-receipt.json
 .harn/
 .codex/

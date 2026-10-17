@@ -8,6 +8,34 @@ on:
 permissions:
   contents: read
 jobs:
+  release-bootstrap:
+    name: Check the checkpoint release guard
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: burin-labs/harn/.github/actions/setup-harn@0f4c441cd7b062537a7eb607f120725eb6bf5019
+        with:
+          version: 0.10.167
+      - name: Install the attested controller and release consumer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/release-proof/bootstrap.sh
+      - name: Prove the guard accepts original bytes and refuses invalid evidence
+        run: |
+          set -euo pipefail
+          driver="$RUNNER_TEMP/smart-ship-release/driver"
+          harn check "$driver/release.harn" "$driver/test_release.harn"
+          harn lint --strict "$driver/release.harn" "$driver/test_release.harn"
+          HARN_BIN="$(command -v harn)" harn test "$driver/test_release.harn"
+      - name: Build and inspect the complete verified site
+        run: |
+          set -euo pipefail
+          python3 scripts/release-proof/test_build.py
+          python3 verification/build_release.py
+          python3 scripts/release-proof/inspect_site.py .smart-ship-pages.tar "$GITHUB_SHA"
   admission-bootstrap:
     name: Check the packed admission driver
     runs-on: ubuntu-24.04

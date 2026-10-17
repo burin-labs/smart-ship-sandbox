@@ -28,6 +28,35 @@ and allocate enough slots for the active workers within the ten-slot budget.
 The current queue and deployment policy remain authoritative until the
 checkpoint controller and release guard are qualified.
 
+## Publish a verified checkpoint
+
+Deployment consumes a signed checkpoint and the exact tar produced by its
+verified stock job. Run `python3 verification/build_release.py` as that job's
+command and declare `.smart-ship-pages.tar` as its `pages` output. It runs the
+complete Python inventory before building the deterministic site archive.
+A failed test removes any previous archive and produces no release output.
+
+Keep `checkpoint.json` and those exact archive bytes, named `artifact.tar`, in
+an immutable signed evidence commit in this repository. The checkpoint publisher
+uses the recorded sandbox key; candidate commands never receive that key.
+The generic controller owns qualification and publication. These files are its
+release projection, not another source of shipping decisions.
+
+Dispatch `pages.yml` on `main` with that `evidence` commit, the exact `checkpoint`
+digest and verified `source` commit. The consumer loads its own trust document
+and the attested package candidate from run `39005135303`. It rejects an invalid
+signature, incomplete proof, changed source or substituted output through the
+generic release guard. It also requires the last healthy deployed commit to be
+an ancestor of the requested source, and checks the two site members before
+uploading the original tar bytes to Pages. Preserve the workflow's qualification
+artifact and independently read the published health receipt.
+
+Main pushes no longer deploy directly. Until a new checkpoint qualifies, the
+previous site stays published, including while a combined snapshot fails or
+its repair is running. A deployment dispatch alone is not a release receipt.
+The candidate archive pin is temporary under sandbox issue #37 and Harn #9857;
+replace it with the promoted package only after its qualification is retained.
+
 ## Prove original CI admission
 
 The manual admission workflows preserve the current merge and release owners.

@@ -1,0 +1,93 @@
+import { execution, fixture, proof } from "../package/fixtures/support"
+import { guard_release } from "./release"
+import { checkpoint_bytes, checkpoint_id, freeze_snapshot, promote } from "smart-ship/lib"
+
+pipeline test_deployment_guard_accepts_proven_bytes_and_refuses_substitutions(harness: Harness) {
+  const root = harness.fs.mkdtemp_in_workspace("release-guard-")
+  defer {
+    harness.fs.delete(root)
+  }
+  const artifact = path_join(root, "artifact.tar")
+  harness.fs.write_text(artifact, "actual release bytes")
+  const f = fixture(harness.random)
+  const original = execution(f)
+  const requirement = original.requirement + {artifacts: ["pages"]}
+  const measured = original
+    + {
+      requirement: requirement,
+      artifacts: [{name: "pages", digest: "sha256:" + sha256_hex("actual release bytes")}],
+    }
+  const snapshot = freeze_snapshot(f.snapshot + {changes: [], requirements: [requirement]})
+  const bound = measured + {requirement: snapshot.requirements[0]!}
+  const checkpoint =
+    promote(snapshot, [proof(f, bound)], f.policy, f.authority, f.fence).checkpoint!
+  const signed = {
+    checkpoint: checkpoint,
+    signer: "publisher",
+    signature: ed25519_sign(f.private_key, checkpoint_bytes(checkpoint)),
+  }
+  const checkpoint_file = path_join(root, "checkpoint.json")
+  harness.fs.write_text(checkpoint_file, json_stringify(signed))
+  const configuration = {
+    trust: pick(f.policy, ["installation", "checkpoint_keys"]),
+    controller: "sha256:e2a62a3372d209a5aeead4a9f10fe721386dc107d4f9327f89f7e274f24a5db4",
+  }
+  const input = {
+    checkpoint_file: checkpoint_file,
+    checkpoint: checkpoint_id(checkpoint),
+    source: bound.source,
+    artifact: artifact,
+  }
+  const accepted = guard_release(harness, configuration, input)
+  assert_eq(accepted.artifacts[0]?.original, bound)
+  assert_eq(accepted.artifacts[0]?.mode, "executed")
+  for refused in [
+    input + {checkpoint: "sha256:" + "0".repeat(64)},
+    input + {source: bound.source + {commit: "0".repeat(40)}},
+    input + {source: bound.source + {tree: "0".repeat(40)}},
+    input + {artifact: path_join(root, "missing.tar")},
+  ] {
+    assert(
+      is_err(
+        try {
+          guard_release(harness, configuration, refused)
+        },
+      ),
+    )
+  }
+  assert(
+    is_err(
+      try {
+        guard_release(harness, configuration + {controller: "sha256:" + "0".repeat(64)}, input)
+      },
+    ),
+  )
+  harness.fs.write_text(artifact, "substituted release bytes")
+  assert(
+    is_err(
+      try {
+        guard_release(harness, configuration, input)
+      },
+    ),
+  )
+  harness.fs.write_text(artifact, "actual release bytes")
+  harness.fs.write_text(checkpoint_file, json_stringify(signed + {signature: "0".repeat(128)}))
+  assert(
+    is_err(
+      try {
+        guard_release(harness, configuration, input)
+      },
+    ),
+  )
+  harness.fs.write_text(
+    checkpoint_file,
+    json_stringify(signed + {checkpoint: checkpoint + {proofs: []}}),
+  )
+  assert(
+    is_err(
+      try {
+        guard_release(harness, configuration, input)
+      },
+    ),
+  )
+}
