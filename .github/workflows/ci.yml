@@ -36,6 +36,27 @@ jobs:
           python3 scripts/release-proof/test_build.py
           python3 verification/build_release.py
           python3 scripts/release-proof/inspect_site.py .smart-ship-pages.tar "$GITHUB_SHA"
+  observer-bootstrap:
+    name: Check the attested group observer
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: burin-labs/harn/.github/actions/setup-harn@0f4c441cd7b062537a7eb607f120725eb6bf5019
+        with:
+          version: 0.10.167
+      - name: Install the attested observer with protected configuration
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/group-observer/bootstrap.mjs
+      - name: Check the actual installed observer
+        run: |
+          set -euo pipefail
+          observer="$RUNNER_TEMP/smart-ship-observer/package/github-observer-cli.harn"
+          harn check "$observer"
+          harn lint --strict "$observer"
   admission-bootstrap:
     name: Check the packed admission driver
     runs-on: ubuntu-24.04

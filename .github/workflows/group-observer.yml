@@ -1,0 +1,65 @@
+name: Observe shipping group
+
+on:
+  workflow_dispatch:
+    inputs:
+      evidence:
+        description: Immutable Git commit containing the complete original signed admissions in group.json
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+jobs:
+  observe:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Load the workflow's trusted control source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - uses: burin-labs/harn/.github/actions/setup-harn@0f4c441cd7b062537a7eb607f120725eb6bf5019
+        with:
+          version: 0.10.167
+      - name: Install the attested observer and protected trust policy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/group-observer/bootstrap.mjs
+      - name: Read the original evidence as data
+        env:
+          EVIDENCE: ${{ inputs.evidence }}
+        run: |
+          set -euo pipefail
+          [[ "$EVIDENCE" =~ ^[0-9a-f]{40}$ ]]
+          root="$RUNNER_TEMP/smart-ship-observer"
+          evidence="$RUNNER_TEMP/group-evidence.git"
+          git init --bare --quiet "$evidence"
+          git --git-dir="$evidence" fetch --no-tags https://github.com/burin-labs/smart-ship-sandbox.git "$EVIDENCE"
+          size="$(git --git-dir="$evidence" cat-file -s "$EVIDENCE:group.json")"
+          [[ "$size" =~ ^[0-9]+$ && "$size" -gt 0 && "$size" -le 16777216 ]]
+          git --git-dir="$evidence" show "$EVIDENCE:group.json" > "$root/group.json"
+      - name: Observe current reviews and the exact proposed tree
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/smart-ship-observer"
+          node "$root/driver/secret-run.mjs" observe "$root/group.json" "$root/observation.json"
+          jq '{schema,status,required,observed,required_reviews,observed_reviews,pending,failed,invalid,read_errors,destination,group}' "$root/observation.json"
+      - name: Preserve the original request and measured observation
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: smart-ship-group-observation
+          path: |
+            ${{ runner.temp }}/smart-ship-observer/group.json
+            ${{ runner.temp }}/smart-ship-observer/observation.json
+            ${{ runner.temp }}/smart-ship-observer/driver/observer.json
+            ${{ runner.temp }}/smart-ship-observer/archive-attestation.json
+          if-no-files-found: error

@@ -12,12 +12,13 @@ const modes = {
   prepare: {script: join(driver, 'prepare.harn'), secrets: {'github/access-token': 'GH_TOKEN', 'smart-ship/scope': 'SMART_SHIP_SCOPE_KEY'}, hosts: ['api.github.com']},
   execute: {script: join(root, 'package/job-cli.harn'), secrets: {'smart-ship/executor': 'SMART_SHIP_EXECUTOR_KEY'}, hosts: []},
   issue: {script: join(root, 'package/admission-cli.harn'), secrets: {'github/access-token': 'GH_TOKEN', 'smart-ship/admission': 'SMART_SHIP_ADMISSION_KEY'}, hosts: ['api.github.com', '*.blob.core.windows.net']},
+  observe: {script: join(root, 'package/github-observer-cli.harn'), secrets: {'github/access-token': 'GH_TOKEN'}, hosts: ['api.github.com', 'github.com']},
 };
 const selected = modes[mode];
-if (!selected || !inputPath || !outputPath || process.argv.length !== 5) throw new Error('Expected prepare|execute|issue, public input path and public output path');
+if (!selected || !inputPath || !outputPath || process.argv.length !== 5) throw new Error('Expected prepare|execute|issue|observe, public input path and public output path');
 const publicInput = JSON.parse(readFileSync(inputPath, 'utf8'));
 const checkout = realpathSync(resolve(process.env.GITHUB_WORKSPACE ?? process.cwd()));
-if (mode !== 'issue') {
+if (mode !== 'issue' && mode !== 'observe') {
   const requestedWorkspace = mode === 'prepare' ? publicInput.workspace : publicInput.plan.job.workspace;
   if (realpathSync(resolve(requestedWorkspace)) !== checkout) throw new Error('Stock request workspace differs from the host checkout');
 }
@@ -43,11 +44,15 @@ try {
   payload.fill(0);
   const outputDirectory = dirname(resolve(outputPath));
   mkdirSync(outputDirectory, {recursive: true});
-  const workspace = mode === 'issue' ? realpathSync(outputDirectory) : checkout;
+  const workspace = mode === 'issue' || mode === 'observe' ? realpathSync(outputDirectory) : checkout;
   const args = ['run', '--standalone', '--parent-secret-stdin', '--read-only-root', root, '--read-only-root', resolve(inputPath), '--write-root', workspace, '--write-root', outputDirectory];
+  // The pinned observer only reads provider facts and composes Git objects.
+  // Host mode lets its artifact guard inspect the installed package metadata.
+  if (mode === 'observe') args.push('--no-sandbox');
   if (selected.hosts.length) args.push('--allow-process-network');
   args.push(selected.script, '--');
   if (mode === 'issue') args.push(join(driver, 'issuer.json'));
+  if (mode === 'observe') args.push(join(driver, 'observer.json'));
   args.push(resolve(inputPath));
   const result = spawnSync('harn', args, {
     cwd: workspace,
