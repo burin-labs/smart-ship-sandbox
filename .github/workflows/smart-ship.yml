@@ -5,6 +5,8 @@ on:
     types: [labeled, unlabeled, synchronize, ready_for_review, dequeued, closed]
   pull_request_review:
     types: [submitted]
+  pull_request_review_thread:
+    types: [resolved, unresolved]
   schedule:
     - cron: "7,22,37,52 * * * *"
   workflow_dispatch:
