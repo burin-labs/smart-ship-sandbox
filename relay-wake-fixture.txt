@@ -1,0 +1,2 @@
+Unlabeled thread resolution must be admitted as a skip without a workflow dispatch.
+Ship-labeled thread resolution must dispatch one Smart Ship look at this pull request.
