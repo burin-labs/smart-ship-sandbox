@@ -31,7 +31,7 @@ permissions:
 jobs:
   ship:
     if: ${{ inputs.main_red != 'process-canary' }}
-    uses: burin-labs/.github/.github/workflows/smart-ship.yml@eb1f793204a2b7678c665c5a6e0a02325d6cd238
+    uses: burin-labs/.github/.github/workflows/smart-ship.yml@17d2b2c82367592cc727de4e667d09dd51d03559
     with:
       burin-ref: f08fb24c8b9b31046c3712d442c2fbd4a7087555
       ship-label: ship-parallel-canary
