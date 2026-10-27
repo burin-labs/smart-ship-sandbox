@@ -26,7 +26,7 @@ permissions:
 
 jobs:
   ship:
-    uses: burin-labs/.github/.github/workflows/smart-ship.yml@2ef969f35ae0384e786be20d9eb2467edc88e8bd
+    uses: burin-labs/.github/.github/workflows/smart-ship.yml@e7d470e4a2ad9d4de2f80c85aa823adc65e394e9
     with:
       # Exercise the production repair path on deliberately broken fixtures.
       repair: true
