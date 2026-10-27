@@ -1,23 +1,9 @@
-name: Smart Ship
-
-# Mirrors the production callers so this sandbox proves the real wake path.
-# The shared runner decides which events wake the shepherd.
+name: Swift failure identity canary
 
 on:
-  pull_request_target: # zizmor: ignore[dangerous-triggers] never checks out or runs pull request code; the shared runner reads the PR through the API and runs its own pinned scripts
-    types: [labeled, unlabeled, synchronize, ready_for_review, dequeued, closed]
-  pull_request_review:
-    types: [submitted]
-  workflow_run: # zizmor: ignore[dangerous-triggers] the pinned shared runner admits only completed same-repository runs, reads metadata through the API, and never checks out the parent-run ref
-    workflows: [CI]
-    types: [completed]
-  schedule:
-    - cron: "7,22,37,52 * * * *"
-  # The review-thread relay in burin-labs/.github dispatches with `pr`.
   workflow_dispatch:
     inputs:
       pr:
-        description: Pull request number to look at; empty runs a sweep.
         type: string
         default: ""
 
@@ -25,14 +11,46 @@ permissions:
   contents: read
 
 jobs:
-  ship:
-    uses: burin-labs/.github/.github/workflows/smart-ship.yml@f46c36b703f685dd0109cd02e104865780bc3451
-    with:
-      burin-ref: 0aab48168cd7f49c49eb76c28d8448f118d4f5ad
-      ship-label: ship-parallel-canary
-      repair: false
-    secrets:
-      RELEASE_APP_CLIENT_ID: ${{ secrets.RELEASE_APP_CLIENT_ID }}
-      RELEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  verify:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [attributed, timeout]
+    steps:
+      - name: Mint the release app token
+        id: app
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: burin-code
+      - name: Check out the identity producer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: burin-labs/burin-code
+          ref: 3cf96d269e466bf1dd43265b9b14b72a10bd4063
+          token: ${{ steps.app.outputs.token }}
+          persist-credentials: false
+      - name: Fetch Harn
+        uses: ./.github/actions/fetch-harn
+        with:
+          github-token: ${{ github.token }}
+          precompile: "false"
+      - name: Simulate the completed XCTest result
+        id: full
+        env:
+          MODE: ${{ matrix.mode }}
+        run: |
+          mkdir -p .build
+          printf '%s\n' "<testsuites><testsuite tests='1' failures='1'><testcase classname='BurinAppTests.CanaryTests' name='testExample'><failure message='failure'/></testcase></testsuite></testsuites>" > .build/test-results.xml
+          printf '%s\n' "$GITHUB_WORKSPACE/Tests/BurinAppTests/CanaryTests.swift:12: error: -[BurinAppTests.CanaryTests testExample] : assertion failed" > .build/swift-test-output.log
+          if [ "$MODE" = timeout ]; then exit 124; fi
+          echo "swift_test_failed=true" >> "$GITHUB_OUTPUT"
+          exit 1
+      - name: Record the Swift test failure identity
+        if: ${{ failure() && steps.full.outputs.swift_test_failed == 'true' }}
+        run: >-
+          ./scripts/harnw run scripts/record-swift-failure-identity.harn --
+          .build/test-results.xml .build/swift-test-output.log
