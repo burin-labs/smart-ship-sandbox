@@ -30,6 +30,7 @@ permissions:
 
 jobs:
   ship:
+    if: ${{ github.event_name != 'workflow_dispatch' }}
     uses: burin-labs/.github/.github/workflows/smart-ship.yml@6abfc2cd5d97dd171e41e0b7aa324d8657aaef6c
     with:
       burin-ref: 24ad738e80c9bc2e1772214733af1fefeab72262
@@ -41,3 +42,37 @@ jobs:
       RELEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  process-lifecycle:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Mint read access to the candidate
+        id: app
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          owner: burin-labs
+          repositories: burin-code
+      - name: Check out the exact repair candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: burin-labs/burin-code
+          ref: 4c06db10e1e68ff35369393ce6cc537df5307d06
+          token: ${{ steps.app.outputs.token }}
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .node-version
+      - name: Fetch the pinned Harn runtime
+        uses: ./.github/actions/fetch-harn
+        with:
+          github-token: ${{ github.token }}
+          precompile: "false"
+      - name: Verify repair cancellation and owner death on Linux
+        run: node --experimental-strip-types --no-warnings --test scripts/tests/test-smart-ship-repair-owner.ts
+      - name: Verify real repair deadline and stop
+        run: ./scripts/harnw test scripts/tests/test_smart_ship_repair_process_harn.harn
