@@ -26,7 +26,7 @@ permissions:
 
 jobs:
   ship:
-    uses: burin-labs/.github/.github/workflows/smart-ship.yml@96b144b83304cdccfbaaa25776243a258232a2df
+    uses: burin-labs/.github/.github/workflows/smart-ship.yml@b98fb6514fbe99a4eeaed798b9cff81707decc42
     with:
       burin-ref: ksinder/ship-parallel-canary-code
       ship-label: ship-parallel-canary
