@@ -20,17 +20,22 @@ on:
         description: Pull request number to look at; empty runs a sweep.
         type: string
         default: ""
+      main_red:
+        description: Synthetic invalid input for the main-red dispatch canary.
+        type: string
+        default: ""
 
 permissions:
   contents: read
 
 jobs:
   ship:
-    uses: burin-labs/.github/.github/workflows/smart-ship.yml@f46c36b703f685dd0109cd02e104865780bc3451
+    uses: burin-labs/.github/.github/workflows/smart-ship.yml@6abfc2cd5d97dd171e41e0b7aa324d8657aaef6c
     with:
-      burin-ref: 0aab48168cd7f49c49eb76c28d8448f118d4f5ad
+      burin-ref: 24ad738e80c9bc2e1772214733af1fefeab72262
       ship-label: ship-parallel-canary
       repair: false
+      main-red: ${{ inputs.main_red }}
     secrets:
       RELEASE_APP_CLIENT_ID: ${{ secrets.RELEASE_APP_CLIENT_ID }}
       RELEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
