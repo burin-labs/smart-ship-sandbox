@@ -12,8 +12,8 @@ counter: 1
 Sandbox for Smart Ship end-to-end tests. Label a PR `ship` to hand it to the shepherd.
 The caller enables model-assisted repair for deliberate conflict and failing-CI
 fixtures so these tests exercise the same repair path as production callers.
-Its default-branch policy grants the hosted models, runs the complete Python
-fixture inventory, and limits the ordinary Smart Ship repair attempts.
+Its default-branch policy grants the hosted models, runs the Python lint and
+complete fixture inventory, and limits the ordinary Smart Ship repair attempts.
 The existing landing writer and checkpoint controller remain authoritative; this
 caller does not activate the grouped-repair proof or change its attempt ledger.
 
@@ -21,6 +21,9 @@ The workbench control probe verifies queue recovery and an explicit human
 handoff before local editing.
 
 ## Run the grouped-change fixture
+
+Run `python3 verification/lint.py` to check the fixture Python files for syntax
+errors and trailing whitespace. CI and the repair verifier use the same check.
 
 Run `python3 verification/run_tests.py` from the repository root. It executes
 the arithmetic and capacity tests and writes `.ship-report.xml` with actual
