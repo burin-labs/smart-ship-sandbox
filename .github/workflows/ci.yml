@@ -117,6 +117,8 @@ jobs:
           EVENT: ${{ github.event_name }}
           CHECK_SLEEP: 90
         run: ./check.sh
+      - name: Lint sandbox Python
+        run: python3 verification/lint.py
       - name: Verify admission credential handoff
         run: node --test scripts/admission-proof/secret-run.test.mjs
       - name: Require every installation proof
