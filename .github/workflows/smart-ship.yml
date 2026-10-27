@@ -26,11 +26,12 @@ permissions:
 
 jobs:
   ship:
-    uses: burin-labs/.github/.github/workflows/smart-ship.yml@ef1906f805d8a763008c9bbd580144aadeeb9a82
+    uses: burin-labs/.github/.github/workflows/smart-ship.yml@2ef969f35ae0384e786be20d9eb2467edc88e8bd
     with:
-      # A sandbox has nothing worth paying a repair model for.
-      repair: false
+      # Exercise the production repair path on deliberately broken fixtures.
+      repair: true
     secrets:
       RELEASE_APP_CLIENT_ID: ${{ secrets.RELEASE_APP_CLIENT_ID }}
       RELEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

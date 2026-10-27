@@ -1,0 +1,11 @@
+# Default-branch policy for deliberately broken sandbox pull requests.
+base_branch = "main"
+
+[repair]
+inference_reach = "anyHosted"
+verify_command = "python3 verification/run_tests.py"
+spend_limit_usd = "1.00"
+budget = 2
+max_total = 3
+author_idle_minutes = 0
+models = [{model = "gpt-6-luna", effort = "high"}, {model = "gpt-6.1-sol", effort = "medium"}]
