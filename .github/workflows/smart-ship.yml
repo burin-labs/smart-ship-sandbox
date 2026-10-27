@@ -26,10 +26,11 @@ permissions:
 
 jobs:
   ship:
-    uses: burin-labs/.github/.github/workflows/smart-ship.yml@e7c69c0cdcb245211e11c44f54ed900f5ae61c7e
+    uses: burin-labs/.github/.github/workflows/smart-ship.yml@96b144b83304cdccfbaaa25776243a258232a2df
     with:
-      # Exercise the production repair path on deliberately broken fixtures.
-      repair: true
+      burin-ref: ksinder/ship-parallel-canary-code
+      ship-label: ship-parallel-canary
+      repair: false
     secrets:
       RELEASE_APP_CLIENT_ID: ${{ secrets.RELEASE_APP_CLIENT_ID }}
       RELEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
