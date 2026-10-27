@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [attributed, timeout]
+        mode: [attributed, timeout, incomplete]
     steps:
       - name: Mint the release app token
         id: app
@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: burin-labs/burin-code
-          ref: 3cf96d269e466bf1dd43265b9b14b72a10bd4063
+          ref: 6042d32732b13319a2827f7882d51feb0e3d020e
           token: ${{ steps.app.outputs.token }}
           persist-credentials: false
       - name: Fetch Harn
@@ -45,7 +45,16 @@ jobs:
         run: |
           mkdir -p .build
           printf '%s\n' "<testsuites><testsuite tests='1' failures='1'><testcase classname='BurinAppTests.CanaryTests' name='testExample'><failure message='failure'/></testcase></testsuite></testsuites>" > .build/test-results.xml
-          printf '%s\n' "$GITHUB_WORKSPACE/Tests/BurinAppTests/CanaryTests.swift:12: error: -[BurinAppTests.CanaryTests testExample] : assertion failed" > .build/swift-test-output.log
+          {
+            printf '%s\n' "Test Case '-[BurinAppTests.CanaryTests testExample]' started."
+            printf '%s\n' "$GITHUB_WORKSPACE/Tests/BurinAppTests/CanaryTests.swift:12: error: -[BurinAppTests.CanaryTests testExample] : assertion failed"
+            printf '%s\n' "Test Case '-[BurinAppTests.CanaryTests testExample]' failed (1.0 seconds)."
+            if [ "$MODE" = incomplete ]; then
+              printf '%s\n' 'Executed 1 test, with 2 failures (0 unexpected) in 1.0 seconds'
+            else
+              printf '%s\n' 'Executed 1 test, with 1 failure (0 unexpected) in 1.0 seconds'
+            fi
+          } > .build/swift-test-output.log
           if [ "$MODE" = timeout ]; then exit 124; fi
           echo "swift_test_failed=true" >> "$GITHUB_OUTPUT"
           exit 1
