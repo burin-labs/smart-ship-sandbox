@@ -60,7 +60,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: burin-labs/burin-code
-          ref: 4c06db10e1e68ff35369393ce6cc537df5307d06
+          ref: bc0b0539ea07db66aaba4883e3214a6d0ab6e72a
           token: ${{ steps.app.outputs.token }}
           persist-credentials: false
       - name: Set up Node
