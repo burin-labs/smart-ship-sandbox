@@ -30,10 +30,10 @@ permissions:
 
 jobs:
   ship:
-    if: ${{ github.event_name != 'workflow_dispatch' }}
-    uses: burin-labs/.github/.github/workflows/smart-ship.yml@6abfc2cd5d97dd171e41e0b7aa324d8657aaef6c
+    if: ${{ inputs.main_red != 'process-canary' }}
+    uses: burin-labs/.github/.github/workflows/smart-ship.yml@eb1f793204a2b7678c665c5a6e0a02325d6cd238
     with:
-      burin-ref: 24ad738e80c9bc2e1772214733af1fefeab72262
+      burin-ref: f08fb24c8b9b31046c3712d442c2fbd4a7087555
       ship-label: ship-parallel-canary
       repair: false
       main-red: ${{ inputs.main_red }}
@@ -44,7 +44,7 @@ jobs:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
   process-lifecycle:
-    if: ${{ github.event_name == 'workflow_dispatch' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.main_red == 'process-canary' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
