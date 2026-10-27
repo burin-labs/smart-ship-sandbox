@@ -28,7 +28,7 @@ jobs:
   ship:
     uses: burin-labs/.github/.github/workflows/smart-ship.yml@f46c36b703f685dd0109cd02e104865780bc3451
     with:
-      burin-ref: ksinder/ship-parallel-canary-code
+      burin-ref: 0aab48168cd7f49c49eb76c28d8448f118d4f5ad
       ship-label: ship-parallel-canary
       repair: false
     secrets:
