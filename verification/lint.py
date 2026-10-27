@@ -5,11 +5,12 @@ import sys
 
 
 def main():
+    root_paths = sorted(Path(".").glob("*.py"))
     fixture_paths = sorted(Path("verification").glob("*.py"))
-    if not fixture_paths:
-        print("verification Python files are missing", file=sys.stderr)
+    if not root_paths or not fixture_paths:
+        print("root or verification Python files are missing", file=sys.stderr)
         return 1
-    paths = [Path("calc.py"), *fixture_paths]
+    paths = root_paths + fixture_paths
     failures = []
     for path in paths:
         source = path.read_text(encoding="utf-8")
