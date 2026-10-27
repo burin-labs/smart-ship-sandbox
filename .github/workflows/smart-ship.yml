@@ -31,7 +31,7 @@ permissions:
 jobs:
   ship:
     if: ${{ inputs.main_red != 'process-canary' }}
-    uses: burin-labs/.github/.github/workflows/smart-ship.yml@251c8f00c0b89853052bac2ba7ec2807a60ec5ab
+    uses: burin-labs/.github/.github/workflows/smart-ship.yml@272d0e31410bd55818e9919356fc632441915bd8
     with:
       burin-ref: f08fb24c8b9b31046c3712d442c2fbd4a7087555
       ship-label: ship-parallel-canary
@@ -60,7 +60,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: burin-labs/burin-code
-          ref: bc0b0539ea07db66aaba4883e3214a6d0ab6e72a
+          ref: 12f679eb1b9e12398c9b6a074e1cfe9a193344cc
           token: ${{ steps.app.outputs.token }}
           persist-credentials: false
       - name: Set up Node
