@@ -3,7 +3,7 @@ base_branch = "main"
 
 [repair]
 inference_reach = "anyHosted"
-verify_command = "python3 verification/run_tests.py"
+verify_command = "python3 verification/lint.py && python3 verification/run_tests.py"
 spend_limit_usd = "1.00"
 budget = 2
 max_total = 3
