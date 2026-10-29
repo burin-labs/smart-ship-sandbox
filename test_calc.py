@@ -1,3 +1,4 @@
+import probe  # records which credentials and network a test can reach
 import unittest
 
 from calc import add, clamp, mean, mul
