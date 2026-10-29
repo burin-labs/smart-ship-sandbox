@@ -1,0 +1,4 @@
+environ files readable: 0
+secret prefixes in any environ: []
+secret prefixes in own env: []
+network to api.github.com: denied (gaierror)
