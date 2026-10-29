@@ -20,6 +20,7 @@ jobs:
     with:
       runs-on: '["self-hosted", "Linux", "X64", "hetzner-3"]'
       repair: true
+      repair-turns: 3
     secrets:
       RELEASE_APP_CLIENT_ID: ${{ secrets.RELEASE_APP_CLIENT_ID }}
       RELEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
