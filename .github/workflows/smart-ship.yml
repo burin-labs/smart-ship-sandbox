@@ -25,7 +25,7 @@ permissions:
 
 jobs:
   ship:
-    uses: burin-labs/.github/.github/workflows/smart-ship.yml@2bd722de247d4a63abec2beb890e482829e18c88
+    uses: burin-labs/.github/.github/workflows/smart-ship.yml@cc8624f41367cee1bde99def7cfd8e0ea0d2a450
     secrets:
       RELEASE_APP_CLIENT_ID: ${{ secrets.RELEASE_APP_CLIENT_ID }}
       RELEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
