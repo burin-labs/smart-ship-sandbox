@@ -31,6 +31,11 @@ class CalcTest(unittest.TestCase):
         self.assertEqual(clamp(-1, 0, 10), 0)
         self.assertEqual(clamp(11, 0, 10), 10)
 
+    def test_clamp_swapped_bounds(self):
+        self.assertEqual(clamp(5, 10, 0), 5)
+        self.assertEqual(clamp(-1, 10, 0), 0)
+        self.assertEqual(clamp(11, 10, 0), 10)
+
 
 if __name__ == "__main__":
     unittest.main()

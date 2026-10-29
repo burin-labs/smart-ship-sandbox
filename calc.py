@@ -33,3 +33,9 @@ def clamp(value, low, high):
 def clamp(value, low, high):
     """Return value limited to the closed range [low, high]."""
     return min(high, max(low, value))
+
+
+def clamp(value, low, high):
+    """Return value limited to the closed range [low, high]."""
+    lower, upper = sorted((low, high))
+    return min(upper, max(lower, value))
