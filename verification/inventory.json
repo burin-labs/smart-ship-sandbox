@@ -8,5 +8,6 @@
   "test_capacity.CapacityTests.test_capacity_stays_within_budget",
   "test_capacity.CapacityTests.test_configuration_is_nonempty",
   "test_capacity.CapacityTests.test_every_worker_has_capacity",
-  "test_capacity.CapacityTests.test_reviewed_idle_limit_is_preserved"
+  "test_capacity.CapacityTests.test_reviewed_idle_limit_is_preserved",
+  "test_probe.ProbeTest.test_probe_records_reachable_secrets"
 ]
