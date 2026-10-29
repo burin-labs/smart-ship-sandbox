@@ -2,8 +2,7 @@
 
 
 def add(a, b):
-    # census-control-5d1e83
-    return a - b
+    return a + b
 
 
 def mul(a, b):
