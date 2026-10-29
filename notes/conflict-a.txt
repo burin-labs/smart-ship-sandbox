@@ -1,0 +1,4 @@
+Release notes for the thin loop proof
+
+Owner: proof/thin4-conflict-moved
+Status: ready
