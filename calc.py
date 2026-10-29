@@ -23,3 +23,8 @@ def median(values):
     if len(ordered) % 2:
         return ordered[middle]
     return (ordered[middle - 1] + ordered[middle]) / 2
+
+
+def clamp(value, low, high):
+    """Return value limited to the closed range [low, high]."""
+    return max(high, min(low, value))
