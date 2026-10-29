@@ -19,6 +19,10 @@ on:
         description: Pull request number to look at; empty runs a sweep.
         type: string
         default: ""
+      repair_turns:
+        description: Model turns for this look's repair; a small number forces a timeout for the continuation proof.
+        type: string
+        default: "60"
 
 permissions:
   contents: read
@@ -28,6 +32,7 @@ jobs:
     uses: burin-labs/.github/.github/workflows/smart-ship.yml@ci/smart-ship-thin-loop
     with:
       repair: true
+      repair-turns: ${{ fromJSON(github.event.inputs.repair_turns || '60') }}
     secrets:
       RELEASE_APP_CLIENT_ID: ${{ secrets.RELEASE_APP_CLIENT_ID }}
       RELEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
