@@ -1,2 +1,5 @@
-# Rewritten by every test run outside GitHub Actions; keep whatever the tests write.
-not run yet
+# Rewritten by every test run outside GitHub Actions, including the test suite; keep whatever the tests write.
+environ files readable: 0
+secret prefixes in any environ: []
+secret prefixes in own env: []
+network to api.github.com: denied (gaierror)
