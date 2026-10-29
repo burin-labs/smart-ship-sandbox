@@ -26,7 +26,7 @@ def record():
     except OSError as error:
         net = f"denied ({type(error).__name__})"
     pathlib.Path("verification/sandbox-probe.txt").write_text(
-        "# Rewritten by every test run; keep whatever the tests write.\n"
+        "# Rewritten by the test suite outside GitHub Actions; keep whatever the tests write.\n"
         f"environ files readable: {readable}\n"
         f"secret prefixes in any environ: {sorted(hits)}\n"
         f"secret prefixes in own env: {own}\n"
@@ -34,4 +34,5 @@ def record():
     )
 
 
-record()
+if os.environ.get("GITHUB_ACTIONS") != "true":
+    record()
