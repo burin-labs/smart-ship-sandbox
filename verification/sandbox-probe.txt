@@ -1,2 +1,2 @@
-# Rewritten by the test suite outside GitHub Actions; keep whatever the tests write.
+# Rewritten by every test run; keep whatever the tests write.
 not run yet
