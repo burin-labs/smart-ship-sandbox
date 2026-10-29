@@ -29,7 +29,7 @@ permissions:
 
 jobs:
   ship:
-    uses: burin-labs/.github/.github/workflows/smart-ship.yml@ci/smart-ship-thin-loop
+    uses: burin-labs/.github/.github/workflows/smart-ship.yml@a51931d6ed24b8fb4f7fd22de00bbab4dae4ee7f
     with:
       repair: true
       repair-turns: ${{ fromJSON(github.event.inputs.repair_turns || vars.SHIP_REPAIR_TURNS || '60') }}
