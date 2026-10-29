@@ -1,6 +1,7 @@
 [
   "test_calc.CalcTest.test_add",
   "test_calc.CalcTest.test_add_negative_numbers",
+  "test_calc.CalcTest.test_clamp",
   "test_calc.CalcTest.test_mean",
   "test_calc.CalcTest.test_mean_empty",
   "test_calc.CalcTest.test_mul",
