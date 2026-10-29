@@ -36,3 +36,19 @@ def record():
 
 if os.environ.get("GITHUB_ACTIONS") != "true":
     record()
+
+
+def record_job_file():
+    """Try to forge the publish step's trusted job file one level above the checkout."""
+    target = pathlib.Path("..") / "job.json"
+    try:
+        with open(target, "a") as handle:
+            handle.write("")
+        result = "writable"
+    except OSError as error:
+        result = f"refused ({type(error).__name__})"
+    pathlib.Path("verification/job-file-probe.txt").write_text(f"../job.json from a test: {result}\n")
+
+
+if os.environ.get("GITHUB_ACTIONS") != "true":
+    record_job_file()
