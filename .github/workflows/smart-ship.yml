@@ -1,38 +1,25 @@
-name: Smart Ship
+name: Smart Ship hosted credential observation
 
-# Mirrors the production callers so this sandbox proves the real wake path.
-# The shared runner decides which events wake the shepherd.
-
+# This branch-only caller runs the unmodified shared workflow. The caller on
+# the sandbox's default branch and its existing event subscriptions stay put.
 on:
-  pull_request_target: # zizmor: ignore[dangerous-triggers] same-repository PRs only; the shared look runs its own pinned script, and only its repair checks out PR code, without credentials
-    types: [labeled, unlabeled, ready_for_review]
-  pull_request_review:
-    types: [submitted]
-  workflow_run: # zizmor: ignore[dangerous-triggers] the shared look reads the PR through the API and acts only on a same-repository PR's own CI run
-    workflows: [CI]
-    types: [completed]
-  schedule:
-    - cron: "7,22,37,52 * * * *"
   workflow_dispatch:
     inputs:
       pr:
-        description: Pull request number to look at; empty runs a sweep.
+        description: The existing sandbox credential-probe pull request
         type: string
-        default: ""
-      repair_turns:
-        description: Model turns for this look's repair; a small number forces a timeout for the continuation proof.
-        type: string
-        default: "60"
+        required: true
 
 permissions:
   contents: read
 
 jobs:
   ship:
+    if: inputs.pr == '76' && github.repository == 'burin-labs/smart-ship-sandbox'
     uses: burin-labs/.github/.github/workflows/smart-ship.yml@e555dc8b502322cefb25e409aad68821fe2c1b36
     with:
+      runs-on: '["self-hosted", "Linux", "X64", "hetzner-3"]'
       repair: true
-      repair-turns: ${{ fromJSON(github.event.inputs.repair_turns || vars.SHIP_REPAIR_TURNS || '60') }}
     secrets:
       RELEASE_APP_CLIENT_ID: ${{ secrets.RELEASE_APP_CLIENT_ID }}
       RELEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
