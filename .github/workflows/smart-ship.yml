@@ -4,16 +4,15 @@ name: Smart Ship
 # The shared runner decides which events wake the shepherd.
 
 on:
-  pull_request_target: # zizmor: ignore[dangerous-triggers] never checks out or runs pull request code; the shared runner reads the PR through the API and runs its own pinned scripts
-    types: [labeled, unlabeled, synchronize, ready_for_review, dequeued, closed]
+  pull_request_target: # zizmor: ignore[dangerous-triggers] same-repository PRs only; the shared look runs its own pinned script, and only its repair checks out PR code, without credentials
+    types: [labeled, unlabeled, ready_for_review]
   pull_request_review:
     types: [submitted]
-  workflow_run: # zizmor: ignore[dangerous-triggers] the pinned shared runner admits only completed same-repository runs, reads metadata through the API, and never checks out the parent-run ref
+  workflow_run: # zizmor: ignore[dangerous-triggers] the shared look reads the PR through the API and acts only on a same-repository PR's own CI run
     workflows: [CI]
     types: [completed]
   schedule:
     - cron: "7,22,37,52 * * * *"
-  # The review-thread relay in burin-labs/.github dispatches with `pr`.
   workflow_dispatch:
     inputs:
       pr:
@@ -26,12 +25,8 @@ permissions:
 
 jobs:
   ship:
-    uses: burin-labs/.github/.github/workflows/smart-ship.yml@12f9468a8ba51a6c38d15624ca0a50d178be7e6a
-    with:
-      # Exercise the production repair path on deliberately broken fixtures.
-      repair: true
+    uses: burin-labs/.github/.github/workflows/smart-ship.yml@cc8624f41367cee1bde99def7cfd8e0ea0d2a450
     secrets:
       RELEASE_APP_CLIENT_ID: ${{ secrets.RELEASE_APP_CLIENT_ID }}
       RELEASE_APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
