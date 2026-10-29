@@ -33,3 +33,8 @@ def clamp(value, low, high):
 def clamp(value, low, high):
     """Return value limited to the closed range [low, high]."""
     return min(high, max(low, value))
+
+
+def clamp(value, low, high):
+    """Return value limited to the closed range [low, high]."""
+    return max(high, min(low, value))
