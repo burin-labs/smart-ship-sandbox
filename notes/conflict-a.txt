@@ -1,4 +1,4 @@
 Release notes for the thin loop proof
 
-Owner: proof/thin4-conflict-second
+Owner: proof/thin4-conflict-first
 Status: ready
