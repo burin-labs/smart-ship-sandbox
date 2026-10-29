@@ -14,6 +14,13 @@ permissions:
   contents: read
 
 jobs:
+  log-control:
+    if: inputs.pr == '76' && github.repository == 'burin-labs/smart-ship-sandbox'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Emit the non-secret audit control
+        run: |
+          printf '%s\n' 'Thin loop proof 2: probe credentials during repair'
   ship:
     if: inputs.pr == '76' && github.repository == 'burin-labs/smart-ship-sandbox'
     uses: burin-labs/.github/.github/workflows/smart-ship.yml@e555dc8b502322cefb25e409aad68821fe2c1b36
